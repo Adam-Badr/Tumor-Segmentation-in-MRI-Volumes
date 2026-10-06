@@ -5,7 +5,10 @@ __pycache__/
 
 # C extensions
 *.so
-
+Task01_BrainTumour/
+ENG2440_Assignment2.pdf
+Task01_BrainTumour.tar
+assignment2_split.csv
 # Distribution / packaging
 .Python
 build/

@@ -1,0 +1,2570 @@
+I only used ai to create a LaTeX tenmplate for me to then include my own words. Chats were done using ChatGPT Astra at medium effort. 
+
+# Create LaTeX report template
+
+> Imagine you are a medical imaging researcher. I am a student who has done a full set of experiments for a UNET doing brain tumour image segmentation, and now I have to write a report. The only thing is, I do not know how to write in LaTeX. I would like you to design a template that is in latex that organizes the report (which can be a max of 6 pages + an appendix of 2 pages) into the way I will describe below. Please do not fill in actual analysis for me, use filler text to say (Write what you wanted to write here). Be conscious of spacing so things you find to be not important, delegate to the appendix (though be very careful before doing this). Also create a references section for me to add the references independently. Output copy-and-pastable blocks I can put on overleaf. You are allowed to verbatim copy and paste figures and tables I provide you right now (as this is my work you are merely translating it onto the latex). I will paste you the actual assignment structure and wherever it says to explicitly analyse and talk about something, have a place for me to present the image or write about it.
+>
+> My planned structure:
+>
+> A: Give me a space to state input, output, unit of analysis etc.
+> Display the reference in axial, coronal and sagittal planes and explain why file-index order alone is insufficient
+> for spatial interpretation.
+>
+> B: Nothing
+>
+> C: Report
+> the resulting mean and standard deviation.
+>
+> Crop or pad consistently and apply safe training-only augmentation. Show one paired before/after example and
+> justify the transforms.
+>
+> D: Report input channels, output channels,
+> parameter count and patch size.
+> Report the fraction of sampled patches containing tumor for both samplers.
+> Plot training and validation loss and validation Dice. Identify underfitting, instability or overfitting without
+> using test results for selection.
+> E:
+> Compare uniform and tumor-aware sampling using the same architecture, split, loss and training budget. [3]
+> • Report validation Dice, tumor sensitivity and false-positive volume for both conditions. Explain the mechanism
+> behind any difference. [4]
+> • Select one final configuration using validation evidence only. State one disadvantage of excessive tumor
+> oversampling.
+>
+> F: Implement overlapping sliding-window inference and combine overlapping probabilities before thresholding.
+> State patch size, stride, overlap and blending rule. [4]
+> • On the untouched test split, report case-wise whole-tumor Dice, IoU, sensitivity and HD95 in millimetres.
+> Provide mean, standard deviation and median, plus the number of empty predictions. [4]
+> • Convert voxel counts to tumor volume in millilitres using voxel spacing. Report absolute and percentage volume
+> error per case. [3]
+> • Apply one justified connected-component postprocessing rule. Report results before and after it; do not keep the
+> rule merely because it improves the test score.
+>
+> G: For the best, median and worst test cases by Dice, show axial, coronal and sagittal views with reference and
+> prediction overlays. [3]
+> • Colour true-positive, false-positive and false-negative voxels distinctly. Relate at least one error to boundary
+> quality, small structures or patch context. [3]
+> 2ENG 2440 Medical Imaging & AI in Healthcare Fall 2026
+> • Compare Dice with HD95 and volume error for these cases. Explain why one metric cannot summarize every
+> failure. [2]
+> • State at least three limitations, including the small training budget and the lack of external-site validation.
+>
+> And both bonuses.
+>
+> Write the template- after this i will paste you all my results for you to fill in so it is just me writing the interpretations
+>
+> User context
+>
+> Attachments:
+> - 1. Purpose and learning outcomes Build an end-to-end PyTorch pipeline that segm…: `~/.codex/attachments/652771aa-69d7-4bc8-b3fb-0e27d104010d/Pasted text.txt`
+
+<details><summary>6 previous messages</summary>
+
+> I’ll read the full assignment and build an Overleaf-ready template, keeping required results in the main report and using the appendix for supporting detail. Interpretation sections will remain as placeholders.
+>
+> <details><summary>Explored a file</summary>
+>
+> - Read `~/.codex/attachments/652771aa-69d7-4bc8-b3fb-0e27d104010d/Pasted text.txt`
+>
+> </details>
+>
+> Both bonuses require visible results, code, and a 150–250-word interpretation each. I’ll reserve space for those, keep the main figures and interpretation prompts in the report, and place detailed geometry, code excerpts, and the full case-wise results table in the appendix. I’ll omit section B as requested; the assignment does require split counts and tumour-volume distributions, so that omission is worth revisiting before submission.
+>
+> <details><summary>Created a file, ran 2 commands</summary>
+>
+> - Ran `mkdir -p outputs`
+>
+> - Wrote `./outputs/main.tex` (+372 -0)
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran `which pdfinfo pdflatex tectonic`
+>
+> </details>
+>
+> The template now includes placeholders for the required figures, tables, interpretations, and both bonuses. The appendix retains the full case-wise results requirement. Final page fit will depend on the number of test cases and the space your figures and text need; I’ve left page 6 mostly available for bonus text and references.
+>
+> <details><summary>Edited a file</summary>
+>
+> Tool call
+>
+> Tool: open_in_codex
+> Status: completed
+>
+> - Wrote `./outputs/main.tex` (+1 -2)
+>
+> </details>
+</details>
+
+[Download the commented LaTeX template](outputs/main.tex).
+
+The template reserves **six main-report pages plus two appendix pages**:
+
+| Page | Content |
+|---|---|
+| 1 | A: task and spatial interpretation; C: preprocessing statistics |
+| 2 | C: augmentation; D: model, training and learning curves |
+| 3 | E: sampling comparison; F: inference and evaluation summary |
+| 4 | G: three-plane error analysis and limitations |
+| 5–6 | Both bonuses and references |
+| Appendix A | Detailed geometry, batch verification and bonus code |
+| Appendix B | Complete case-wise test results before/after postprocessing |
+
+**Section B is omitted as requested**, although the assignment requires split counts and tumour-volume distributions. Required case-wise results are retained in the appendix, with summary results and interpretation in the main report.
+
+Paste the following into Overleaf’s `main.tex`. Missing images appear as labelled boxes, so you can add your figures later. Replace `\TODO` with your writing and `\val` with results. The final page count must be checked after inserting your material; local compilation has not yet been confirmed.
+
+```latex
+\documentclass[10pt,a4paper]{article}
+
+% ---------- Layout and packages ----------
+\usepackage[margin=18mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,graphicx,xcolor}
+\usepackage{amsmath,booktabs,tabularx,array}
+\usepackage{caption,enumitem,listings}
+\usepackage[hidelinks]{hyperref}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+\setlist{nosep,leftmargin=*}
+
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  showstringspaces=false
+}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\TODO}{
+  \textit{(Write what you wanted to write here.)}
+}
+\newcommand{\val}{\textemdash}
+\newcommand{\prompt}[1]{\textbf{#1} \TODO\par}
+
+% Displays your uploaded image, or a placeholder if it is missing.
+% Images retain their aspect ratio.
+\newcommand{\panel}[3]{%
+  \IfFileExists{#1}{%
+    \includegraphics[
+      width=\linewidth,
+      height=#2,
+      keepaspectratio
+    ]{#1}%
+  }{%
+    \fbox{
+      \parbox[c][#2][c]{0.94\linewidth}{
+        \centering
+        \textbf{#3}\\[4pt]
+        \small Upload:
+        \texttt{\detokenize{#1}}
+      }
+    }%
+  }
+}
+
+\begin{document}
+
+% ============================================================
+% MAIN REPORT: PAGE 1
+% ============================================================
+
+{\Large\bfseries
+Whole-Tumour Segmentation with a 3D U-Net
+}\par
+
+ENG 2440 Medical Imaging \& AI in Healthcare
+\hfill Fall 2026\\
+Name: \val \quad Student ID: \val \quad Date: \val
+
+\section*{A. Task definition and spatial interpretation}
+
+\begin{tabularx}{\linewidth}{@{}lY@{}}
+\toprule
+Input & \TODO\\
+Output / target definition & \TODO\\
+Unit of analysis & \TODO\\
+Intended technical use & \TODO\\
+\bottomrule
+\end{tabularx}
+
+\prompt{Terminology and scope.}
+% Distinguish voxel, slice, volume and patient case.
+% State the intended research scope.
+
+\begin{center}
+\panel{figures/modalities.png}{24mm}
+      {Four modalities and reference mask}
+\captionof{figure}{
+One case at the same physical location:
+FLAIR, T1, T1ce, T2 and reference mask.
+Case, plane, coordinates and display settings: \TODO
+}
+\end{center}
+
+\begin{center}
+\panel{figures/reference-planes.png}{26mm}
+      {Axial, coronal and sagittal reference views}
+\captionof{figure}{
+Orthogonal reference views.
+Label anatomical directions, selected locations
+and the displayed modality. \TODO
+}
+\end{center}
+
+\prompt{Why file-index order is insufficient
+for spatial interpretation.}
+% Explain using the observed affine, orientation
+% and physical coordinates.
+
+Detailed inspection of three cases is reported
+in Appendix~\ref{app:geometry}.
+
+% Section B omitted at your request.
+% The assignment also requires split counts and
+% reference tumour-volume distributions.
+
+\section*{C. Safe preprocessing}
+
+\prompt{Geometry, interpolation and label integrity.}
+% State whether resampling was necessary.
+% If applicable, give the target grid and interpolation
+% methods for MRI and labels.
+% Report observed label values before/after processing.
+
+\begin{center}
+\captionof{table}{
+Resulting channel statistics over the specified
+non-zero brain-voxel mask.
+State split/cases, mask definition, processing stage,
+and whether values are pooled or averaged across cases:
+\TODO
+}
+\begin{tabular}{lrrrr}
+\toprule
+ & FLAIR & T1 & T1ce & T2\\
+\midrule
+Mean & \val & \val & \val & \val\\
+Standard deviation & \val & \val & \val & \val\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\prompt{Normalisation method and consistent crop/pad policy.}
+
+\newpage
+
+% ============================================================
+% MAIN REPORT: PAGE 2
+% ============================================================
+
+\section*{C. Safe preprocessing (continued)}
+
+\begin{center}
+\panel{figures/augmentation.png}{36mm}
+      {Paired before/after MRI and mask}
+\captionof{figure}{
+The same example before and after training-only
+augmentation, with the transformed reference mask.
+Identify case, modality, transforms, parameters
+and matched viewing location: \TODO
+}
+\end{center}
+
+\prompt{Transform justification and safeguards.}
+% Justify each transform.
+% Explain how image/mask alignment is preserved.
+% Explain validation/test processing differences.
+
+\section*{D. Patch-based volumetric training}
+
+\begin{center}
+\captionof{table}{
+Model and training configuration.
+Define spatial axis order.
+}
+\begin{tabularx}{\linewidth}{@{}lYlY@{}}
+\toprule
+Architecture & \val
+  & Input channels & \val\\
+Output channels & \val
+  & Trainable parameters & \val\\
+Patch size & \val
+  & Batch size & \val\\
+Loss & \val
+  & Optimizer & \val\\
+Learning rate & \val
+  & Random seed(s) & \val\\
+Training budget & \val
+  & Initialization control & \val\\
+Validation schedule & \val
+  & Checkpoint criterion & \val\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\prompt{Tensor and batch verification.}
+% Give actual image [B,C,D,H,W] and mask [B,1,D,H,W]
+% shapes, dtypes and observed mask values.
+% Put concise printed output in Appendix A.
+
+\prompt{Sampler definitions and measured
+tumour-containing patch fractions.}
+% Define a tumour-containing patch.
+% Give numerator/denominator, measurement interval
+% and fraction for BOTH samplers.
+% The requested sampling probability may differ from
+% the observed tumour-containing patch fraction.
+
+\begin{center}
+\panel{figures/training-curves.png}{48mm}
+      {Loss curves and validation Dice for both samplers}
+\captionof{figure}{
+Training loss, validation loss and validation Dice
+versus epoch/iteration.
+Show both samplers, legends, evaluation protocol
+and selected checkpoints: \TODO
+}
+\end{center}
+
+\prompt{Training behaviour.}
+% Discuss underfitting, instability or overfitting
+% only where supported by your curves.
+% Use training/validation evidence, not test results.
+
+\newpage
+
+% ============================================================
+% MAIN REPORT: PAGE 3
+% ============================================================
+
+\section*{E. Controlled sampling comparison}
+
+\prompt{Controlled experimental design.}
+% State what was held fixed: architecture, split, loss,
+% initialization, training budget and evaluation.
+% Identify any deviations.
+
+\begin{center}
+\captionof{table}{
+Validation comparison.
+Define metric aggregation, sensitivity and FP volume.
+Identify patch/full-volume evaluation and
+checkpoint selection: \TODO
+}
+\begin{tabular}{lrrrr}
+\toprule
+Sampler & Tumour patches (\%) & Dice
+        & Sensitivity & FP volume (mL)\\
+\midrule
+Uniform & \val & \val & \val & \val\\
+Tumour-aware & \val & \val & \val & \val\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\prompt{Mechanism behind the observed difference.}
+
+\prompt{Final configuration, validation-only rationale
+and oversampling disadvantage.}
+
+\section*{F. Full-volume inference and evaluation}
+
+\prompt{Sliding-window reconstruction.}
+% State patch size, stride, per-axis overlap,
+% blending rule, padding/cropping and threshold.
+% Explain probability combination BEFORE thresholding.
+
+\prompt{Evaluation conventions and physical units.}
+% Define case-wise aggregation and SD convention.
+% State how HD95 is computed in millimetres.
+% Document empty masks, undefined HD95 and
+% zero-reference-volume handling.
+
+For voxel spacing $(s_x,s_y,s_z)$ in millimetres
+and tumour voxel count $N$,
+\[
+V_{\mathrm{mL}}=\frac{N s_xs_ys_z}{1000},
+\qquad
+E_V=|V_{\mathrm{pred}}-V_{\mathrm{ref}}|,
+\qquad
+E_{V,\%}=100\frac{E_V}{V_{\mathrm{ref}}}.
+\]
+% These define absolute and absolute percentage error.
+% If reporting signed percentage error, label and
+% define it separately.
+
+\prompt{Connected-component rule
+and independent justification.}
+% Specify connectivity, size threshold/retention rule
+% and units. Explain when/how the rule was chosen.
+% Do not choose the rule using test-score improvements.
+
+\begin{center}
+\captionof{table}{
+Untouched test-set results before and after
+postprocessing.
+Each cell contains mean / SD / median across cases.
+Report case count and excluded/undefined values:
+\TODO
+}
+\begin{tabularx}{\linewidth}{@{}lYY@{}}
+\toprule
+Metric & Before & After\\
+\midrule
+Dice & \val & \val\\
+IoU & \val & \val\\
+Sensitivity & \val & \val\\
+HD95 (mm) & \val & \val\\
+Absolute volume error (mL) & \val & \val\\
+Absolute percentage volume error (\%)
+  & \val & \val\\
+Empty predictions (count) & \val & \val\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\prompt{Observed effect of postprocessing
+and decision to retain or reject it.}
+
+Complete case-wise metrics and volumes appear
+in Appendix~\ref{app:cases}.
+
+\newpage
+
+% ============================================================
+% MAIN REPORT: PAGE 4
+% ============================================================
+
+\section*{G. Three-plane error analysis and limitations}
+
+\prompt{Case ranking and view-selection procedure.}
+% Specify raw/postprocessed Dice ranking, tie handling,
+% median selection for even case counts, modality
+% and physical slice locations.
+
+\begin{center}
+\panel{figures/error-grid.png}{88mm}
+      {3 rows: best / median / worst;
+       3 columns: axial / coronal / sagittal}
+\captionof{figure}{
+Best, median and worst test cases by Dice.
+Each panel overlays reference and prediction on MRI
+and uses distinct colours for true-positive,
+false-positive and false-negative voxels.
+Include a shared legend, case IDs, anatomical
+directions and slice locations. \TODO
+}
+\end{center}
+% Use a 3-by-3 composite image.
+% Enlarge if necessary to preserve readable anatomy
+% and labels; do not sacrifice legibility to page count.
+
+\begin{center}
+\captionof{table}{
+Overlap, boundary and volume measurements
+for the displayed cases.
+}
+\begin{tabular}{llrrrr}
+\toprule
+Rank & Case ID & Dice & HD95 (mm)
+     & $E_V$ (mL) & $E_{V,\%}$\\
+\midrule
+Best & \val & \val & \val & \val & \val\\
+Median & \val & \val & \val & \val & \val\\
+Worst & \val & \val & \val & \val & \val\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\prompt{Error interpretation.}
+% Relate at least one observed error to boundary quality,
+% small structures or patch context.
+% Refer to actual panels and locations.
+
+\prompt{Why Dice, HD95 and volume error
+tell different parts of the story.}
+
+\textbf{Limitations.}
+\begin{enumerate}
+\item Small training budget: \TODO
+\item Lack of external-site validation: \TODO
+\item Additional limitation grounded
+      in your experiment: \TODO
+\end{enumerate}
+
+\newpage
+
+% ============================================================
+% MAIN REPORT: PAGE 5
+% ============================================================
+
+\section*{Bonus 1. Missing-modality stress test}
+
+\prompt{Protocol.}
+% Identify fixed model/checkpoint, zeroing stage
+% and evaluation split.
+% Confirm no retraining and explain controls.
+
+\begin{center}
+\captionof{table}{
+Four-channel baseline and one-channel-at-a-time zeroing.
+Define aggregation and whether volume error
+is absolute/percentage: \TODO
+}
+\begin{tabular}{lrrr}
+\toprule
+Condition & Dice & HD95 (mm) & Volume error (\val)\\
+\midrule
+All channels & \val & \val & \val\\
+FLAIR zeroed & \val & \val & \val\\
+T1 zeroed & \val & \val & \val\\
+T1ce zeroed & \val & \val & \val\\
+T2 zeroed & \val & \val & \val\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\prompt{Interpretation (150--250 words).}
+% Identify the most influential channel using results.
+% Explain why zeroing imperfectly represents
+% a genuinely missing acquisition.
+% Explain how training could be redesigned
+% for missing modalities.
+% Write a complete 150--250-word interpretation.
+
+Implementation excerpts are provided
+in Appendix~\ref{app:code}.
+
+\section*{Bonus 2. Sliding-window seam test}
+
+\prompt{Protocol and runtime measurement.}
+% Same trained model.
+% Give hardware, timing scope, repetitions,
+% actual strides and rounding of requested overlap.
+% State fixed blending/threshold settings.
+
+\begin{center}
+\captionof{table}{
+Overlap comparison using the same trained model.
+Define metric aggregation and runtime units: \TODO
+}
+\begin{tabular}{lrrrr}
+\toprule
+Overlap & Runtime (s/case) & Dice
+        & HD95 (mm) & Volume error (\val)\\
+\midrule
+0\%  & \val & \val & \val & \val\\
+25\% & \val & \val & \val & \val\\
+50\% & \val & \val & \val & \val\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\panel{figures/seam-difference.png}{24mm}
+      {Probability difference near patch borders}
+\captionof{figure}{
+Define the compared probability maps,
+difference operation, border locations/band
+and colour scale or axes. \TODO
+}
+\end{center}
+
+\prompt{Interpretation (150--250 words).}
+% Explain when overlap helps using your results.
+% Explain why repeatedly inspecting test labels
+% to choose overlap would bias evaluation.
+% Write a complete 150--250-word interpretation.
+
+\newpage
+
+% ============================================================
+% MAIN REPORT: PAGE 6
+% ============================================================
+% Page 6 provides room for references and bonus-text overflow.
+% If completed bonuses exceed page 5, remove the \newpage above
+% so they continue onto page 6 before the references.
+% Check that the appendix begins no later than PDF page 7.
+
+\begin{thebibliography}{99}
+
+% Replace these with your own references.
+% Cite an entry in your writing using \cite{dataset}.
+% Add further \bibitem entries as needed.
+
+\bibitem{dataset}
+\TODO\ [Dataset reference.]
+
+\bibitem{architecture}
+\TODO\ [Architecture reference.]
+
+\bibitem{methods}
+\TODO\ [Additional methods/evaluation reference.]
+
+\end{thebibliography}
+
+\clearpage
+\appendix
+
+% ============================================================
+% APPENDIX: PAGE 1 OF 2
+% ============================================================
+
+\section*{Appendix A. Geometry and implementation evidence}
+\phantomsection
+\label{app:geometry}
+
+\begin{center}
+\captionof{table}{
+Inspection of at least three patient cases.
+State array axis order, channel order, orientation,
+spacing in mm and observed labels.
+}
+\begin{tabularx}{\linewidth}{@{}lYYY@{}}
+\toprule
+Property & Case 1: \val & Case 2: \val & Case 3: \val\\
+\midrule
+Image / label shape & \val & \val & \val\\
+Channel order & \val & \val & \val\\
+Orientation codes & \val & \val & \val\\
+Voxel spacing (mm) & \val & \val & \val\\
+Original label values & \val & \val & \val\\
+Processed label values & \val & \val & \val\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Observed affine matrices.}
+Replace every dash with an actual value.
+Identify original versus processed geometry.
+
+\[
+\begin{array}{c@{\qquad}c@{\qquad}c}
+\text{Case 1} & \text{Case 2} & \text{Case 3}\\[3pt]
+\begin{bmatrix}
+-&-&-&-\\
+-&-&-&-\\
+-&-&-&-\\
+-&-&-&-
+\end{bmatrix}
+&
+\begin{bmatrix}
+-&-&-&-\\
+-&-&-&-\\
+-&-&-&-\\
+-&-&-&-
+\end{bmatrix}
+&
+\begin{bmatrix}
+-&-&-&-\\
+-&-&-&-\\
+-&-&-&-\\
+-&-&-&-
+\end{bmatrix}
+\end{array}
+\]
+
+\prompt{Additional geometry checks / target-grid details.}
+
+\textbf{Actual batch verification output.}
+\begin{lstlisting}
+(Paste the actual batch-shape, dtype
+and label-value output here.)
+\end{lstlisting}
+
+\subsection*{Bonus implementation excerpts}
+\phantomsection
+\label{app:code}
+
+% Both bonuses require code.
+% Paste concise actual code rather than pseudocode.
+% Also identify the full submitted file/notebook
+% if permitted by your course submission rules.
+
+\textbf{Missing-modality stress-test code.}
+\begin{lstlisting}[language=Python]
+# Paste your actual zeroing and fixed-model
+# evaluation loop here.
+# Include the call producing the reported metrics.
+\end{lstlisting}
+
+\textbf{Sliding-window seam-test code.}
+\begin{lstlisting}[language=Python]
+# Paste your actual overlap loop, timing
+# and probability-difference code here.
+# Include the calls producing the displayed outputs.
+\end{lstlisting}
+
+\newpage
+
+% ============================================================
+% APPENDIX: PAGE 2 OF 2
+% ============================================================
+
+\section*{Appendix B. Complete case-wise test results}
+\phantomsection
+\label{app:cases}
+
+\textbf{Table conventions.}
+B/A = before/after connected-component postprocessing;
+$V_r$/$V_p$ = reference/predicted volume in mL;
+$E_V$ = absolute volume error in mL;
+$E_{V,\%}$ = absolute percentage volume error.
+Define empty-mask and undefined-HD95 notation: \TODO
+
+\begin{center}
+\captionof{table}{
+Every test case before and after postprocessing.
+HD95 is in millimetres.
+Identify empty predictions explicitly.
+}
+
+{\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llrrrrrrrrl@{}}
+\toprule
+Case & Stage & Dice & IoU & Sens. & HD95
+     & $V_r$ & $V_p$ & $E_V$ & $E_{V,\%}$ & Empty?\\
+\midrule
+
+\val & B & \val & \val & \val & \val
+     & \val & \val & \val & \val & \val\\
+\val & A & \val & \val & \val & \val
+     & \val & \val & \val & \val & \val\\
+
+\addlinespace
+
+\val & B & \val & \val & \val & \val
+     & \val & \val & \val & \val & \val\\
+\val & A & \val & \val & \val & \val
+     & \val & \val & \val & \val & \val\\
+
+% Duplicate B/A row pairs until EVERY test case appears.
+
+\bottomrule
+\end{tabular}
+}
+\end{center}
+
+\prompt{Case identifiers, spacing source
+and exceptional-value notes.}
+
+% If the complete table does not fit legibly:
+% rebalance the appendix, shorten code excerpts,
+% or use available main-report space.
+% Do not omit required cases or silently exceed 6+2 pages.
+
+\end{document}
+```
+
+> I have attached you my code and my cell outputs (in order of the code). Fill them into the latex (note not all my cell outputs are relevant- just put the relevant ones into the report):
+>
+> split
+> train         338
+> test           73
+> validation     73
+> Name: count, dtype: int64
+>
+> Image: Task01_BrainTumour/imagesTr/BRATS_001.nii.gz
+> Label: Task01_BrainTumour/labelsTr/BRATS_001.nii.gz
+> Image shape: (240, 240, 155, 4)
+> Label shape: (240, 240, 155)
+> Image voxel spacing: (1.0, 1.0, 1.0, 1.0)
+> Label voxel spacing: (1.0, 1.0, 1.0)
+> Affine matrix:
+> [[1. 0. 0. 0.]
+>  [0. 1. 0. 0.]
+>  [0. 0. 1. 0.]
+>  [0. 0. 0. 1.]]
+> Orientation codes: ('R', 'A', 'S')
+> Label values: [0. 1. 2. 3.]
+> Image: Task01_BrainTumour/imagesTr/BRATS_003.nii.gz
+> Label: Task01_BrainTumour/labelsTr/BRATS_003.nii.gz
+> Image shape: (240, 240, 155, 4)
+> Label shape: (240, 240, 155)
+> Image voxel spacing: (1.0, 1.0, 1.0, 1.0)
+> Label voxel spacing: (1.0, 1.0, 1.0)
+> Affine matrix:
+> [[1. 0. 0. 0.]
+>  [0. 1. 0. 0.]
+>  [0. 0. 1. 0.]
+>  [0. 0. 0. 1.]]
+> Orientation codes: ('R', 'A', 'S')
+> Label values: [0. 1. 2. 3.]
+> Image: Task01_BrainTumour/imagesTr/BRATS_004.nii.gz
+> Label: Task01_BrainTumour/labelsTr/BRATS_004.nii.gz
+> Image shape: (240, 240, 155, 4)
+> Label shape: (240, 240, 155)
+> Image voxel spacing: (1.0, 1.0, 1.0, 1.0)
+> Label voxel spacing: (1.0, 1.0, 1.0)
+> Affine matrix:
+> [[1. 0. 0. 0.]
+>  [0. 1. 0. 0.]
+>  [0. 0. 1. 0.]
+>  [0. 0. 0. 1.]]
+> Orientation codes: ('R', 'A', 'S')
+> Label values: [0. 1. 2. 3.]
+>
+> Train case count: 338
+> Validation case count: 73
+> Test case count: 73
+>
+> Original values: [0 1 2 3]
+> Resampled values: [0 2]
+>
+> Channel: FLAIR
+>  mean: 464.9858864745449
+>  std: 270.2428220084918
+> Channel: T1
+>  mean: 613.3651687800044
+>  std: 331.28203722243865
+> Channel: T1ce
+>  mean: 616.2871196537117
+>  std: 391.1857794860021
+> Channel: T2
+>  mean: 489.1851223394134
+>  std: 287.796171497187
+>
+> Image shape: torch.Size([1, 4, 155, 240, 240])
+> Mask shape: torch.Size([1, 155, 240, 240])
+> Image dtype: torch.float32
+> Mask dtype: torch.float32
+> Unique mask values: tensor([0., 1.])
+>
+> Input channels:  4
+> Output channels:  1
+> Patch size:  (96, 96, 96)
+> Parameters:  1401857
+>
+> Epochs: 1 / 10, train loss:1.1635933202751996, val loss:1.0133466238844884, val_dice: 0.5441327553712093
+> Epochs: 2 / 10, train loss:0.875902900505348, val loss:0.8091305388163214, val_dice: 0.5516090382453476
+> Epochs: 3 / 10, train loss:0.7680588578419573, val loss:0.7097256318347095, val_dice: 0.5092811767930445
+> Epochs: 4 / 10, train loss:0.7151084058207168, val loss:0.6142582642297222, val_dice: 0.5676288481750716
+> Epochs: 5 / 10, train loss:0.6677417819933779, val loss:0.6032746348479022, val_dice: 0.5414804004847187
+> Epochs: 6 / 10, train loss:0.6444690481886356, val loss:0.6072806501633501, val_dice: 0.5205349341443141
+> Epochs: 7 / 10, train loss:0.6478832453357045, val loss:0.5262388699267009, val_dice: 0.5901857264649529
+> Epochs: 8 / 10, train loss:0.6610967592066209, val loss:0.43041041197433866, val_dice: 0.6766632738178724
+> Epochs: 9 / 10, train loss:0.648255126054823, val loss:0.5380845143370432, val_dice: 0.5715568482059322
+> Epochs: 10 / 10, train loss:0.6252461753168402, val loss:0.5645585313235244, val_dice: 0.5409681157349315
+> Fraction with tumor: 0.7926035502958579
+> Mean tumor-voxel fraction: 0.039677972320854606
+>
+> Epochs: 1 / 10, train loss:1.1086514809075192, val loss:1.0700991333347478, val_dice: 0.3818117231323045
+> Epochs: 2 / 10, train loss:0.7533753822893786, val loss:0.8782797186342004, val_dice: 0.47321451580381557
+> Epochs: 3 / 10, train loss:0.6112737806414711, val loss:0.807251753464137, val_dice: 0.47550465906523676
+> Epochs: 4 / 10, train loss:0.5818503664795464, val loss:0.6923939671418439, val_dice: 0.5403610798378781
+> Epochs: 5 / 10, train loss:0.5392606965095333, val loss:0.6355812994584645, val_dice: 0.5545204008789095
+> Epochs: 6 / 10, train loss:0.5327662212123885, val loss:0.6907127803727372, val_dice: 0.48527371730298213
+> Epochs: 7 / 10, train loss:0.48837515603772985, val loss:0.6230237496225801, val_dice: 0.533611593410781
+> Epochs: 8 / 10, train loss:0.5319609229381268, val loss:0.5998977181846148, val_dice: 0.5397805721333174
+> Epochs: 9 / 10, train loss:0.44927720269243393, val loss:0.5480170699015056, val_dice: 0.6280963798761992
+> Epochs: 10 / 10, train loss:0.4597135998705435, val loss:0.4725279554928819, val_dice: 0.6536948108560827
+> Fraction with tumor: 0.8958579881656805
+> Mean tumor-voxel fraction: 0.07068220103149814
+>
+> E:
+> Uniform: Dice: 0.6766632738178724, Sensitivity: 0.8360380577131038, False Positive volume: 56.01134246575342 mm^3
+> Tumor-aware: Dice: 0.6536948108560827, Sensitivity: 0.7713128176176016, False Positive volume: 52.277794520547936 mm^3
+>
+> uniform_val_ov50: 0.35494585037231446 min
+> aware_val_ov50: 0.3500542481740316 min
+> uniform: mean Dice 0.7070307478335954 over 73 cases
+> aware: mean Dice 0.680858006978957 over 73 cases
+> 155 [0, 48, 59]
+> 240 [0, 48, 96, 144]
+>
+> uniform_test_ov50: 0.339835782845815 min
+> uniform , empty predictions: 0 , HD95 valid cases: 73
+>             dice       iou      sens       hd95
+> mean    0.714101  0.575582  0.666529  32.527170
+> std     0.155612  0.171547  0.202054  28.567078
+> median  0.763159  0.617023  0.692361  18.493242
+>
+> uniform
+>      case  true_ml  pred_ml  abs_err_ml    pct_err
+> BRATS_002   63.061   66.759       3.698   5.864163
+> BRATS_012   21.611   20.066       1.545  -7.149137
+> BRATS_016   82.728   70.350      12.378 -14.962286
+> BRATS_033  114.015   93.403      20.612 -18.078323
+> BRATS_039   37.014   47.294      10.280  27.773275
+> BRATS_050   76.238   65.464      10.774 -14.132060
+> BRATS_059   99.569   70.317      29.252 -29.378622
+> BRATS_065  166.091  116.431      49.660 -29.899272
+> BRATS_067   55.277   65.383      10.106  18.282468
+> BRATS_078   85.083   95.063       9.980  11.729723
+> BRATS_079   89.113   68.179      20.934 -23.491522
+> BRATS_088  253.714  117.273     136.441 -53.777482
+> BRATS_097  153.175  118.428      34.747 -22.684511
+> BRATS_108  121.787   70.907      50.880 -41.777858
+> BRATS_112  169.185  146.825      22.360 -13.216302
+> BRATS_131  173.331   94.892      78.439 -45.253878
+> BRATS_137  147.020   98.436      48.584 -33.045844
+> BRATS_141  268.741   84.968     183.773 -68.382941
+> BRATS_142  166.175  110.453      55.722 -33.532120
+> BRATS_144   51.296   73.245      21.949  42.788911
+> BRATS_156  222.612  104.851     117.761 -52.899664
+> BRATS_158   49.235   46.454       2.781  -5.648421
+> BRATS_163   78.353   59.762      18.591 -23.727234
+> BRATS_168   40.454   77.063      36.609  90.495377
+> BRATS_169   87.412   33.152      54.260 -62.073857
+> BRATS_171   20.595   13.224       7.371 -35.790240
+> BRATS_173  179.308  130.199      49.109 -27.388070
+> BRATS_188   35.824   68.080      32.256  90.040197
+> BRATS_192   96.778   49.555      47.223 -48.795181
+> BRATS_198  181.022  136.771      44.251 -24.445095
+> BRATS_222   78.274   82.186       3.912   4.997828
+> BRATS_230   28.269   25.979       2.290  -8.100746
+> BRATS_241  134.581  134.030       0.551  -0.409419
+> BRATS_246   81.393   60.783      20.610 -25.321588
+> BRATS_247   73.992   58.392      15.600 -21.083360
+> BRATS_249  318.345  149.890     168.455 -52.915862
+> BRATS_250  166.621  113.568      53.053 -31.840524
+> BRATS_252   79.862   86.686       6.824   8.544740
+> BRATS_253   54.356  108.480      54.124  99.573184
+> BRATS_260  108.390   90.378      18.012 -16.617769
+> BRATS_262   23.943   30.545       6.602  27.573821
+> BRATS_281  173.928  143.690      30.238 -17.385355
+> BRATS_283  217.380  117.481      99.899 -45.955930
+> BRATS_293   63.061   87.312      24.251  38.456415
+> BRATS_303  183.094   75.081     108.013 -58.993195
+> BRATS_305   55.130   48.938       6.192 -11.231634
+> BRATS_307   46.339   23.556      22.783 -49.165929
+> BRATS_322   20.935   14.026       6.909 -33.002150
+> BRATS_341  132.682   72.307      60.375 -45.503535
+> BRATS_354   87.324   57.802      29.522 -33.807430
+> BRATS_366   89.189   56.602      32.587 -36.537017
+> BRATS_372   39.411   46.459       7.048  17.883332
+> BRATS_374   43.464   19.715      23.749 -54.640622
+> BRATS_376   10.101    6.736       3.365 -33.313533
+> BRATS_377   73.658   60.842      12.816 -17.399332
+> BRATS_387  150.805   30.202     120.603 -79.972813
+> BRATS_396  110.151   75.210      34.941 -31.721001
+> BRATS_399  163.612  158.293       5.319  -3.250984
+> BRATS_401   44.798   38.832       5.966 -13.317559
+> BRATS_412  172.673  110.682      61.991 -35.900807
+> BRATS_414  156.762   77.897      78.865 -50.308748
+> BRATS_436   43.881   65.892      22.011  50.160662
+> BRATS_437  129.841   65.271      64.570 -49.730054
+> BRATS_440   66.816   57.598       9.218 -13.796097
+> BRATS_447  107.194   57.990      49.204 -45.901823
+> BRATS_451  186.261   84.306     101.955 -54.737707
+> BRATS_453  134.271   23.962     110.309 -82.154002
+> BRATS_461  148.030  104.825      43.205 -29.186651
+> BRATS_462   38.314   14.845      23.469 -61.254372
+> BRATS_466   16.748  148.015     131.267 783.777167
+> BRATS_467  157.749   24.892     132.857 -84.220502
+> BRATS_481   57.168  100.497      43.329  75.792401
+> BRATS_482  184.720  128.501      56.219 -30.434712
+>         abs_err_ml     pct_err
+> mean     42.950740   -8.149439
+> std      42.228475  101.488481
+> median   29.522000  -25.321588
+> mean |% error|: 46.333922576305895
+>
+> dice      sens       hd95  abs_err_ml  median_hd95  \
+> test uniform none     0.714101  0.666529  32.527170   42.950740    18.493242
+>              min_1ml  0.719293  0.665352  26.806999   43.262164    16.431677
+>
+>                       empty
+> test uniform none         0
+>              min_1ml      0
+>
+> case  dice    hd95  abs_err_ml  pct_err  true_ml
+> pick
+> best    BRATS_112  0.92    3.32       23.36   -13.81   169.18
+> median  BRATS_241  0.77   38.55        1.57    -1.17   134.58
+> worst   BRATS_466  0.21  118.83      126.90   757.68    16.75
+>
+> dice  hd95_median  abs_err_ml  abs_pct_err  dice_drop
+> zeroed
+> none    0.828       74.603       9.703       14.765      0.000
+> FLAIR   0.262       63.764      31.584       37.131      0.567
+> T1      0.640       84.500      34.062       71.004      0.188
+> T1ce    0.774       68.620      14.644       29.290      0.054
+> T2      0.227       23.589      51.045       84.126      0.602
+>
+> overlap 0.0: stride 96, starts D [0, 59], H/W [0, 96, 144], windows 18
+> overlap 0.25: stride 72, starts D [0, 59], H/W [0, 72, 144], windows 18
+> overlap 0.5: stride 48, starts D [0, 48, 59], H/W [0, 48, 96, 144], windows 48
+>          sec_per_case   dice   sens  hd95_median  abs_err_ml
+> overlap
+> 0.00            3.658  0.637  0.672       47.896      47.796
+> 0.25            3.729  0.690  0.657       38.259      43.784
+> 0.50           10.147  0.714  0.667       18.493      42.942
+>
+> User context
+>
+> Attachments:
+> - # %% [markdown] # ### Verify setup before starting # %% from pathlib import Pat…: `~/.codex/attachments/1a77a317-e5c4-4ee3-b0f6-4718b435eba1/Pasted text.txt`
+> Images:
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-82106814-0759-4b5a-b88f-0a4047299872.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-4899b626-92f5-4680-afb4-e9680e98a447.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-3a53ecb9-be3f-4db7-b4e7-af134b6da8c8.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-f1df803b-55cf-4556-8c1e-8b28ac496aa0.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-a9a5b352-26ea-4c68-b4b6-a4b12858f5da.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-9a155d7f-3032-4270-8c8d-c4cc0397ae9d.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-8b4b8203-229b-4457-bb1b-b853023344c5.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-758968e5-f029-42fe-9710-96fb0a5fb532.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-36989ead-fae1-4877-a630-da7ba6165142.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-8a5af73d-4738-4c52-ba2a-c22597e557a3.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-9c21fc73-dc27-40e7-8fd5-8522b5d5ce57.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-e3435542-1efe-47a5-bf88-6f805f8d2988.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-a50328ab-1f21-49be-9c06-84a4d5ed4484.png`
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-99c094a7-d154-4aa6-b36a-cdeeed24c570.png`
+
+<details><summary>8 previous messages</summary>
+
+> I’ll insert the relevant results and figures into the open report, leaving your interpretations blank. I’ll also check the code for units and evaluation settings so the tables accurately distinguish the different experiments.
+>
+> <details><summary>Explored 4 files</summary>
+>
+> - Read `~/.codex/attachments/1a77a317-e5c4-4ee3-b0f6-4718b435eba1/Pasted text.txt`
+> - Read `./outputs/main.tex`
+> - Read `~/.codex/attachments/1a77a317-e5c4-4ee3-b0f6-4718b435eba1/Pasted text.txt`
+> - Read `~/.codex/attachments/1a77a317-e5c4-4ee3-b0f6-4718b435eba1/Pasted text.txt`
+>
+> </details>
+>
+> The code clarifies three details I’ll label explicitly: the false-positive volumes are in mL despite the printed “mm³” label; the channel statistics are measured before normalisation; and the missing-modality experiment uses five test cases. I’ll also keep direct full-volume validation results separate from sliding-window results. The supplied outputs don’t include the full case-wise Dice/IoU/sensitivity/HD95 table, so I’ll flag that gap rather than invent values.
+>
+> <details><summary>Explored a file, ran 2 commands</summary>
+>
+> <details><summary>Explored a file</summary>
+>
+> - Read `~/.codex/attachments/1a77a317-e5c4-4ee3-b0f6-4718b435eba1/Pasted text.txt`
+>
+> </details>
+>
+> - Ran `ls -la outputs; which python3`
+>
+> - Ran ```mkdir -p work outputs/figures
+> cat > work/fill_report.py <<'PY'
+> from pathlib import Path
+> import shutil
+> root=Path('outputs')
+> src=Path('/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T')
+> assets={
+> 'modalities':'82106814-0759-4b5a-b88f-0a4047299872',
+> 'reference-planes':'4899b626-92f5-4680-afb4-e9680e98a447',
+> 'split-volumes':'3a53ecb9-be3f-4db7-b4e7-af134b6da8c8',
+> 'augmentation':'f1df803b-55cf-4556-8c1e-8b28ac496aa0',
+>  'training-curves':'a9a5b352-26ea-4c68-b4b6-a4b12858f5da',
+> 'overlay-worst':'9a155d7f-3032-4270-8c8d-c4cc0397ae9d',
+> 'overlay-median':'8b4b8203-229b-4457-bb1b-b853023344c5',
+> 'overlay-best':'758968e5-f029-42fe-9710-96fb0a5fb532',
+> 'errors-worst':'36989ead-fae1-4877-a630-da7ba6165142',
+> 'errors-median':'8a5af73d-4738-4c52-ba2a-c22597e557a3',
+> 'errors-best':'9c21fc73-dc27-40e7-8fd5-8522b5d5ce57',
+> 'case-metrics':'e3435542-1efe-47a5-bf88-6f805f8d2988',
+> 'missing-modality':'a50328ab-1f21-49be-9c06-84a4d5ed4484',
+> 'seam-difference':'99c094a7-d154-4aa6-b36a-cdeeed24c570'}
+> for name,uid in assets.items():
+>     shutil.copy2(src/f'codex-clipboard-{uid}.png', root/'figures'/f'{name}.png')
+> # Keep the original source in work only; update the open document in place.
+> shutil.copy2(root/'main.tex',Path('work/template-before-results.tex'))
+> tex=r'''\documentclass[10pt,a4paper]{article}
+> \usepackage[margin=18mm]{geometry}
+> \usepackage[T1]{fontenc}
+> \usepackage{lmodern,microtype,graphicx,xcolor}
+> \usepackage{amsmath,booktabs,tabularx,array}
+> \usepackage{caption,enumitem,listings,titlesec}
+> \usepackage[hidelinks]{hyperref}
+> \setlength{\parindent}{0pt}
+> \setlength{\parskip}{4pt}
+> \setlength{\tabcolsep}{4pt}
+> \renewcommand{\arraystretch}{1.08}
+> \captionsetup{font=small,labelfont=bf,skip=3pt}
+> \setlist{nosep,leftmargin=*}
+> \titlespacing*{\section}{0pt}{8pt}{4pt}
+> \titlespacing*{\subsection}{0pt}{6pt}{3pt}
+> \lstset{basicstyle=\ttfamily\scriptsize,breaklines=true,frame=single,
+> columns=fullflexible,showstringspaces=false,aboveskip=4pt,belowskip=4pt}
+> \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+> \newcommand{\TODO}{\textit{(Write what you wanted to write here.)}}
+> \newcommand{\val}{\textemdash}
+> \newcommand{\prompt}[1]{\textbf{#1} \TODO\par}
+> \newcommand{\missing}[1]{\textit{[Result still needed: #1.]}}
+> \newcommand{\fig}[3]{\begin{center}\includegraphics[width=\linewidth,height=#2,keepaspectratio]{figures/#1.png}\captionof{figure}{#3}\end{center}}
+> % Figures are copied unchanged from the supplied outputs.
+> % All explanations/interpretations remain placeholders.
+> % Fixed page breaks target six main pages + two appendix pages.
+> % Recheck page count after replacing placeholders with prose.
+> \begin{document}
+> {\Large\bfseries Whole-Tumour Segmentation with a 3D U-Net}\par
+> ENG 2440 Medical Imaging \& AI in Healthcare \hfill Fall 2026\\
+> Name: \val\quad Student ID: \val\quad Date: \val
+>
+> \section*{A. Task definition and spatial interpretation}
+> \begin{tabularx}{\linewidth}{@{}lY@{}}
+> \toprule
+> Input & Four co-registered MRI channels: FLAIR, T1, T1ce and T2.\\
+> Output & Binary whole-tumour mask, $y(v)=\mathbf{1}[\text{original label}(v)>0]$.\\
+> Unit of analysis & Voxel-wise classification; patient case for splitting and case-wise evaluation.\\
+> Intended use & Educational research pipeline for volumetric MRI segmentation.\\
+> \bottomrule
+> \end{tabularx}
+> \prompt{Distinguish voxel, slice, volume and patient case; state scope.}
+> \fig{modalities}{27mm}{BRATS\_001: four MRI channels and original multi-class reference at array index $k=77$ (zero-based). The reported identity affine maps this plane to $z=77$\,mm.}
+> \fig{reference-planes}{29mm}{BRATS\_001 reference: sagittal $i=120$, coronal $j=120$, axial $k=77$. These are central array planes; the supplied sagittal panel contains no visible tumour. Original label intensities are retained.}
+> \prompt{Why file-index order alone is insufficient for spatial interpretation.}
+> Inspection of BRATS\_001, BRATS\_003 and BRATS\_004 is detailed in Appendix~\ref{app:geometry}.
+>
+> \section*{C. Safe preprocessing}
+> The code checks image/label shape, spatial spacing and affine agreement. The training pipeline uses the native grid. Separate interpolation helpers use linear MRI interpolation and nearest-neighbour label interpolation; the synthetic label demonstration changes the observed set from $\{0,1,2,3\}$ to $\{0,2\}$.
+> \begin{center}
+> \captionof{table}{Pooled \emph{pre-normalisation} statistics of non-zero voxels across 338 training cases, used as fixed normalisation parameters.}
+> \begin{tabular}{lrrrr}\toprule
+> & FLAIR & T1 & T1ce & T2\\\midrule
+> Mean & 464.986 & 613.365 & 616.287 & 489.185\\
+> SD & 270.243 & 331.282 & 391.186 & 287.796\\\bottomrule
+> \end{tabular}
+> \end{center}
+> Each non-zero intensity is transformed as $(x-\mu_c)/\sigma_c$; zero background remains zero. \missing{measured channel means and SDs after normalisation}. % Do not relabel the raw statistics as measured normalised results.
+> \prompt{Geometry/interpolation explanation and normalisation justification.}
+>
+> \newpage
+> % MAIN PAGE 2
+> \section*{C. Preprocessing (continued)}
+> Training uses an axis-0 flip with probability 0.25 and rotation in array axes $(0,1)$ by an angle sampled from $[-10^\circ,10^\circ]$. MRI uses order 1 and labels order 0 interpolation; rotation retains array shape. Validation/test datasets have no augmentation. Training extracts $96^3$ crops without padding; direct full-volume validation pads to multiples of eight and crops logits back to the original size.
+> \fig{augmentation}{33mm}{BRATS\_001, FLAIR and original label at $k=77$: paired supplied before/after example. The demonstration applies rotation then flip; the training transform list applies flip then rotation. The sampled angle was not logged.}
+> \prompt{Justify transforms and crop/pad consistency.}
+>
+> \section*{D. Patch-based volumetric training}
+> \begin{center}
+> \captionof{table}{Shared configuration for both sampling experiments.}
+> \begin{tabularx}{\linewidth}{@{}lYlY@{}}\toprule
+> Model & 3D U-Net & Channels in/out & 4 / 1\\
+> Feature widths & 16, 32, 64, 128 & Parameters & 1,401,857\\
+> Patch $(D,H,W)$ & $(96,96,96)$ & Batch size & 1\\
+> Loss & BCEWithLogits + soft Dice & Optimizer & Adam\\
+> Learning rate & $10^{-3}$ & Seed & 100\\
+> Budget per model & 10 epochs; 3,380 updates & Patches per case/epoch & 1\\
+> Checkpoint & Maximum validation Dice & Validation & Every epoch\\\bottomrule
+> \end{tabularx}
+> \end{center}
+> Blocks use two $3^3$ convolutions with instance normalisation and LeakyReLU; downsampling uses max pooling and upsampling uses transposed convolutions with skip concatenation. Both runs reset seed 100 before model initialization. The split contains 338 training, 73 validation and 73 test cases.
+>
+> The printed full-volume batch is image $[1,4,155,240,240]$, mask $[1,155,240,240]$, both float32, with mask values $\{0,1\}$. The dataset does not return a mask channel dimension; the training/validation loops add it. Training input/target shapes are $[1,4,96,96,96]$ and $[1,1,96,96,96]$.
+>
+> Uniform sampling draws valid crop corners uniformly. Tumour-aware sampling uses a random tumour-voxel centre with probability 0.5 (clipped to valid bounds), otherwise a uniform crop.
+> \begin{center}
+> \begin{tabular}{lrr}\toprule
+> Sampler & Patches containing tumour & Mean tumour-voxel fraction\\\midrule
+> Uniform & 2,679/3,380 (79.260\%) & 3.968\%\\
+> Tumour-aware & 3,028/3,380 (89.586\%) & 7.068\%\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \fig{training-curves}{37mm}{Supplied learning curves. Plot indices 0--9 correspond to epochs 1--10. Selected checkpoints: uniform epoch 8; tumour-aware epoch 10. Validation is a padded, direct full-volume forward pass.}
+> \prompt{Identify underfitting, instability or overfitting using validation evidence only.}
+>
+> \newpage
+> % MAIN PAGE 3
+> \section*{E. Controlled sampling comparison}
+> The architecture, split, loss, optimizer, learning rate, seed and update budget are shared. Both experiments use the same augmentation pipeline; extra random draws in tumour-aware sampling mean the realised augmentation/crop sequences are not identical.
+> \begin{center}
+> \captionof{table}{Validation on 73 cases. Direct results use each model's best checkpoint. Sliding-window Dice uses 50\% nominal overlap. All metrics are case means. FP volume is in mL: the code divides voxel volume in mm$^3$ by 1,000 despite the printed ``mm$^3$'' label.}
+> \begin{tabular}{lrrrr}\toprule
+> Sampler & Direct Dice & Sensitivity & FP (mL) & Sliding Dice\\\midrule
+> Uniform & 0.676663 & 0.836038 & 56.011 & 0.707031\\
+> Tumour-aware & 0.653695 & 0.771313 & 52.278 & 0.680858\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \prompt{Explain the mechanism behind the observed sampling difference.}
+> The subsequent test code loads \texttt{model\_uniform\_best.pth}.
+> \prompt{Validation-only selection rationale and disadvantage of excessive oversampling.}
+>
+> \section*{F. Full-volume inference and evaluation}
+> Inference uses $96^3$ patches, stride 48 and nominal 50\% overlap. Sigmoid probabilities are summed and divided by the coverage count (uniform blending), then thresholded at $p>0.5$. Final windows are anchored to the volume end: starts are $[0,48,59]$ along $D=155$ and $[0,48,96,144]$ along $H,W=240$, giving 48 windows. Terminal overlaps can exceed 50\%.
+>
+> The test evaluation contains 73 cases. HD95 is the 95th percentile of concatenated bidirectional surface distances, using voxel spacing reordered to $(D,H,W)$. Empty masks produce undefined HD95 (NaN); all 73 supplied raw HD95 values are valid. SD is the pandas sample SD ($n-1$ denominator).
+> \begin{center}
+> \captionof{table}{Raw sliding-window test results, before postprocessing. Percentage volume error is \emph{signed}.}
+> \begin{tabular}{lrrr}\toprule
+> Metric & Mean & SD & Median\\\midrule
+> Dice & 0.714101 & 0.155612 & 0.763159\\
+> IoU & 0.575582 & 0.171547 & 0.617023\\
+> Sensitivity & 0.666529 & 0.202054 & 0.692361\\
+> HD95 (mm) & 32.527170 & 28.567078 & 18.493242\\
+> Absolute volume error (mL) & 42.950740 & 42.228475 & 29.522000\\
+> Signed volume error (\%) & $-8.149439$ & 101.488481 & $-25.321588$\\\bottomrule
+> \end{tabular}
+> \end{center}
+> Empty predictions: 0. Mean absolute percentage volume error: 46.333923\%.
+> \[
+> V=\frac{N s_xs_ys_z}{1000}\ \mathrm{mL},\quad
+> E_V=|V_p-V_r|,\quad e_{\%}=100\frac{V_p-V_r}{V_r}.
+> \]
+> All 73 supplied raw case-volume records appear in Appendix~\ref{app:cases}.
+>
+> The tested postprocessing rule removes 6-connected components smaller than 1\,mL, retaining all components at least 1\,mL.
+> \begin{center}
+> \captionof{table}{Test results before/after the 1\,mL component rule. All values are means except median HD95 and empty counts.}
+> \begin{tabular}{lrrrrrr}\toprule
+> Rule & Dice & Sens. & HD95 & Median HD95 & $E_V$ (mL) & Empty\\\midrule
+> None & .714101 & .666529 & 32.527 & 18.493 & 42.951 & 0\\
+> Min. 1\,mL & .719293 & .665352 & 26.807 & 16.432 & 43.262 & 0\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \prompt{Independent justification, selection timing and effect of the component rule.}
+> % Do not assert the rule was selected before testing without evidence.
+> \missing{case-wise Dice/IoU/sensitivity/HD95, plus complete postprocessing summaries and case-wise results}.
+>
+> \newpage
+> % MAIN PAGE 4
+> \section*{G. Three-plane error analysis and limitations}
+> Cases are ranked by test Dice \emph{after} the 1\,mL rule: maximum, middle sorted case (index 36 of 73), and minimum. Views use the rounded reference-tumour centroid on normalised FLAIR. Each supplied panel shows reference and prediction jointly: reference $=$ TP $\cup$ FN; prediction $=$ TP $\cup$ FP. Colours: TP green, FP red, FN blue.
+> \begin{center}
+> \includegraphics[width=\linewidth,height=43mm,keepaspectratio]{figures/errors-best.png}\\[2pt]
+> \includegraphics[width=\linewidth,height=43mm,keepaspectratio]{figures/errors-median.png}\\[2pt]
+> \includegraphics[width=\linewidth,height=43mm,keepaspectratio]{figures/errors-worst.png}
+> \captionof{figure}{Unaltered supplied three-plane overlays: best BRATS\_112, median BRATS\_241 and worst BRATS\_466. Columns are axial, coronal and sagittal. Counts printed above each row are whole-volume counts.}
+> \end{center}
+> % Separate reference/prediction 3x3 originals are also in figures/overlay-*.png.
+> % The combined TP/FP/FN overlays preserve both masks without duplicating panels.
+> \begin{center}
+> \captionof{table}{Metrics for the displayed postprocessed cases. Dice uses the supplied figure precision; remaining metrics use the rounded supplied table.}
+> \begin{tabular}{llrrrr}\toprule
+> Rank & Case & Dice & HD95 (mm) & $E_V$ (mL) & $e_{\%}$\\\midrule
+> Best & BRATS\_112 & .920291 & 3.32 & 23.36 & $-13.81$\\
+> Median & BRATS\_241 & .768129 & 38.55 & 1.57 & $-1.17$\\
+> Worst & BRATS\_466 & .208725 & 118.83 & 126.90 & 757.68\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \prompt{Relate an observed error to boundary quality, small structures or patch context.}
+> \prompt{Compare Dice, HD95 and volume error; explain why one metric is insufficient.}
+> \textbf{Limitations.}
+> \begin{enumerate}
+> \item Small training budget (10 epochs per model): \TODO
+> \item Lack of external-site validation: \TODO
+> \item Additional limitation grounded in this experiment: \TODO
+> \end{enumerate}
+>
+> \newpage
+> % MAIN PAGE 5: reserve room for a full 150--250-word interpretation.
+> \section*{Bonus 1. Missing-modality stress test}
+> The supplied experiment uses the \textbf{first five test cases}, with the uniform best checkpoint and no retraining. Each normalised channel is zeroed in turn; inference uses $96^3$ windows, 50\% nominal overlap, threshold 0.5 and no component filtering. The four-channel baseline is taken from cached raw results restricted to those same case IDs.
+> \begin{center}
+> \captionof{table}{Five-case missing-modality experiment. Dice, absolute mL error and absolute percentage error are means; HD95 is the median. Dice drop is relative to the five-case baseline.}
+> \begin{tabular}{lrrrrr}\toprule
+> Zeroed & Dice & HD95 (mm) & $E_V$ (mL) & Mean $|e_{\%}|$ & Dice drop\\\midrule
+> None & .828 & 74.603 & 9.703 & 14.765 & .000\\
+> FLAIR & .262 & 63.764 & 31.584 & 37.131 & .567\\
+> T1 & .640 & 84.500 & 34.062 & 71.004 & .188\\
+> T1ce & .774 & 68.620 & 14.644 & 29.290 & .054\\
+> T2 & .227 & 23.589 & 51.045 & 84.126 & .602\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \fig{missing-modality}{41mm}{Supplied plots for the five-case missing-modality experiment. These are not the 73-case baseline results in Section F.}
+> \textbf{Actual implementation excerpt.} Context: inside the first-five-case evaluation loop; \texttt{m} is the loaded best checkpoint in evaluation mode.
+> \begin{lstlisting}[language=Python]
+> for c in range(4):
+>     x = image.clone().to(device)
+>     x[:, c] = 0
+>     pred = sliding_window_probs(m, x, PATCH, 0.5).numpy() > 0.5
+>     tp, fp, fn = (pred & true).sum(), (pred & ~true).sum(), (~pred & true).sum()
+> \end{lstlisting}
+> \prompt{Interpretation (150--250 words).}
+> % Identify the most influential channel using your results, explain why
+> % zeroing is an imperfect missing-acquisition simulation, and discuss
+> % how training could be redesigned. State the five-case scope.
+> \vspace{42mm} % Reserved writing space: remove as interpretation grows.
+>
+> \newpage
+> % MAIN PAGE 6: seam test + references.
+> \section*{Bonus 2. Sliding-window seam test}
+> The same uniform best checkpoint is evaluated on all 73 test cases without component filtering. The three nominal overlaps use strides 96, 72 and 48. End-anchored windows still overlap in the nominal 0\% condition. Counts are 18, 18 and 48 windows per case, respectively.
+> \begin{center}
+> \captionof{table}{Seam experiment: case means except median HD95. Runtime covers the sliding-window call and return to CPU, excluding data loading and metric calculation. Hardware was not supplied.}
+> \begin{tabular}{lrrrrr}\toprule
+> Overlap & Seconds/case & Dice & Sens. & Median HD95 (mm) & $E_V$ (mL)\\\midrule
+> 0\% & 3.658 & .637 & .672 & 47.896 & 47.796\\
+> 25\% & 3.729 & .690 & .657 & 38.259 & 43.784\\
+> 50\% & 10.147 & .714 & .667 & 18.493 & 42.942\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \fig{seam-difference}{40mm}{First test case: absolute probability differences for 0\% versus 50\% and 25\% versus 50\% overlap. Left: average over $D,W$ versus $H$ index. Right: axial slice at the reference centroid. Dashed lines show nominal 0\% window borders; heatmaps use their own colour scales.}
+> \textbf{Actual implementation excerpts.} Context: inside each test-case loop, followed by the plotting loop over retained first-case probabilities.
+> \begin{lstlisting}[language=Python]
+> for ov in overlaps:
+>     t0 = time.time()
+>     probs = sliding_window_probs(m, x, PATCH, ov).numpy()
+>     secs = time.time() - t0
+>     pred = probs > 0.5
+> # In the subsequent plotting loop:
+> diff = np.abs(keep[ov] - keep[0.5])
+> ax[0].plot(diff.mean(axis=(0, 2)), color=colour, label=f"|{int(ov*100)}% - 50%|")
+> \end{lstlisting}
+> \prompt{Interpretation (150--250 words).}
+> % Explain when overlap helps using your results, and why selecting overlap
+> % after repeatedly inspecting test labels would bias evaluation.
+> \vspace{25mm} % Reserved writing space: remove as interpretation grows.
+> % Preserve the small difference between this experiment and Section F:
+> % F uses cached float16 probabilities; the seam test evaluates fresh outputs.
+> \begin{thebibliography}{99}
+> \bibitem{dataset} \TODO\ [Dataset reference.]
+> \bibitem{architecture} \TODO\ [Architecture reference.]
+> \bibitem{methods} \TODO\ [Additional methods/evaluation reference.]
+> \end{thebibliography}
+>
+> \clearpage\appendix
+> % APPENDIX PAGE 1
+> \section*{Appendix A. Geometry and supporting evidence}
+> \phantomsection\label{app:geometry}
+> \begin{center}
+> \captionof{table}{Native NIfTI inspection. All three reported cases share these values.}
+> \begin{tabularx}{\linewidth}{@{}lY@{}}\toprule
+> Cases & BRATS\_001, BRATS\_003, BRATS\_004\\
+> Image / label shape & $(240,240,155,4)$ / $(240,240,155)$\\
+> Channel order & FLAIR, T1 (T1w), T1ce (t1gd), T2 (T2w)\\
+> Orientation & $(R,A,S)$\\
+> Spatial voxel spacing & $(1,1,1)$\,mm; fourth image-header zoom entry is 1\\
+> Original labels & $\{0,1,2,3\}$ in each inspected case\\
+> Binary training target & $\{0,1\}$; original non-zero labels merged\\\bottomrule
+> \end{tabularx}
+> \end{center}
+> For each of the three cases, the reported image affine is
+> \[
+> A_{001}=A_{003}=A_{004}=\begin{bmatrix}
+> 1&0&0&0\\0&1&0&0\\0&0&1&0\\0&0&0&1
+> \end{bmatrix}.
+> \]
+> The code checks image/label affine agreement for every listed case. MRI channels share the spatial geometry of their 4D NIfTI image. The label-resampling demonstration is a synthetic array test, not evidence of resampling these MRI volumes.
+>
+> \textbf{Split evidence (supporting material).} The code reads \texttt{assignment2\_split.csv}, checks all image/label paths and asserts pairwise-disjoint case identifiers. Counts: train 338, validation 73, test 73. The following supplied descriptive plot uses reference labels from all three splits.
+> \fig{split-volumes}{47mm}{Supplied reference tumour-volume distributions. The plotted unit is mm$^3$ (divide by 1,000 for mL). No numerical quartiles were supplied.}
+> % Earlier request omitted a standalone B section; split evidence is retained
+> % here because the current results include it.
+> \textbf{Printed batch verification.}
+> \begin{lstlisting}
+> Image shape: torch.Size([1, 4, 155, 240, 240])
+> Mask shape: torch.Size([1, 155, 240, 240])
+> Image dtype: torch.float32
+> Mask dtype: torch.float32
+> Unique mask values: tensor([0., 1.])
+> \end{lstlisting}
+> \textbf{Evidence still to add before submission.}
+> \begin{itemize}
+> \item Measured post-normalisation means and SDs.
+> \item Full case-wise Dice, IoU, sensitivity and HD95 (not printed in the supplied outputs); complete postprocessing case metrics and summary statistics.
+> \item Independent justification and timing of component-rule selection; hardware used for runtime measurements.
+> \end{itemize}
+> % Code computes test-volume descriptions and geometry checks before training;
+> % do not claim test labels were never accessed before final evaluation.
+> % Interpretation of data leakage/selection remains for the author.
+>
+> \newpage
+> % APPENDIX PAGE 2
+> \section*{Appendix B. All 73 raw test-case volumes}
+> \phantomsection\label{app:cases}
+> The following are the supplied \emph{pre-postprocessing} results. $V_r,V_p,E_V$ are in mL; $e_{\%}$ is signed percentage error (negative means underestimation). IDs abbreviate BRATS\_NNN. Case-wise overlap/boundary metrics were not supplied and are not inferred from volumes.
+> \begin{center}
+> \captionof{table}{Complete supplied raw case-volume results, rounded to three decimals for mL and two decimals for percentage error.}
+> % VOLUME_TABLE
+> \end{center}
+> \end{document}
+> '''
+> (root/'main.tex').write_text(tex)
+> PY
+> python3 work/fill_report.py```
+>
+> </details>
+>
+> The report now separates raw test results, postprocessed results, and the two bonus experiments. I’ve kept the best/median/worst three-plane overlays in the main report and moved the 73-case volume table to the appendix. I’m checking the layout next; your interpretation prompts remain blank.
+>
+> <details><summary>Ran a command</summary>
+>
+> - Ran `cat > work/volumes.txt <<'EOF'
+> 002 63.061 66.759 3.698 5.864163
+> 012 21.611 20.066 1.545 -7.149137
+> 016 82.728 70.350 12.378 -14.962286
+> 033 114.015 93.403 20.612 -18.078323
+> 039 37.014 47.294 10.280 27.773275
+> 050 76.238 65.464 10.774 -14.132060
+> 059 99.569 70.317 29.252 -29.378622
+> 065 166.091 116.431 49.660 -29.899272
+> 067 55.277 65.383 10.106 18.282468
+> 078 85.083 95.063 9.980 11.729723
+> 079 89.113 68.179 20.934 -23.491522
+> 088 253.714 117.273 136.441 -53.777482
+> 097 153.175 118.428 34.747 -22.684511
+> 108 121.787 70.907 50.880 -41.777858
+> 112 169.185 146.825 22.360 -13.216302
+> 131 173.331 94.892 78.439 -45.253878
+> 137 147.020 98.436 48.584 -33.045844
+> 141 268.741 84.968 183.773 -68.382941
+> 142 166.175 110.453 55.722 -33.532120
+> 144 51.296 73.245 21.949 42.788911
+> 156 222.612 104.851 117.761 -52.899664
+> 158 49.235 46.454 2.781 -5.648421
+> 163 78.353 59.762 18.591 -23.727234
+> 168 40.454 77.063 36.609 90.495377
+> 169 87.412 33.152 54.260 -62.073857
+> 171 20.595 13.224 7.371 -35.790240
+> 173 179.308 130.199 49.109 -27.388070
+> 188 35.824 68.080 32.256 90.040197
+> 192 96.778 49.555 47.223 -48.795181
+> 198 181.022 136.771 44.251 -24.445095
+> 222 78.274 82.186 3.912 4.997828
+> 230 28.269 25.979 2.290 -8.100746
+> 241 134.581 134.030 0.551 -0.409419
+> 246 81.393 60.783 20.610 -25.321588
+> 247 73.992 58.392 15.600 -21.083360
+> 249 318.345 149.890 168.455 -52.915862
+> 250 166.621 113.568 53.053 -31.840524
+> 252 79.862 86.686 6.824 8.544740
+> 253 54.356 108.480 54.124 99.573184
+> 260 108.390 90.378 18.012 -16.617769
+> 262 23.943 30.545 6.602 27.573821
+> 281 173.928 143.690 30.238 -17.385355
+> 283 217.380 117.481 99.899 -45.955930
+> 293 63.061 87.312 24.251 38.456415
+> 303 183.094 75.081 108.013 -58.993195
+> 305 55.130 48.938 6.192 -11.231634
+> 307 46.339 23.556 22.783 -49.165929
+> 322 20.935 14.026 6.909 -33.002150
+> 341 132.682 72.307 60.375 -45.503535
+> 354 87.324 57.802 29.522 -33.807430
+> 366 89.189 56.602 32.587 -36.537017
+> 372 39.411 46.459 7.048 17.883332
+> 374 43.464 19.715 23.749 -54.640622
+> 376 10.101 6.736 3.365 -33.313533
+> 377 73.658 60.842 12.816 -17.399332
+> 387 150.805 30.202 120.603 -79.972813
+> 396 110.151 75.210 34.941 -31.721001
+> 399 163.612 158.293 5.319 -3.250984
+> 401 44.798 38.832 5.966 -13.317559
+> 412 172.673 110.682 61.991 -35.900807
+> 414 156.762 77.897 78.865 -50.308748
+> 436 43.881 65.892 22.011 50.160662
+> 437 129.841 65.271 64.570 -49.730054
+> 440 66.816 57.598 9.218 -13.796097
+> 447 107.194 57.990 49.204 -45.901823
+> 451 186.261 84.306 101.955 -54.737707
+> 453 134.271 23.962 110.309 -82.154002
+> 461 148.030 104.825 43.205 -29.186651
+> 462 38.314 14.845 23.469 -61.254372
+> 466 16.748 148.015 131.267 783.777167
+> 467 157.749 24.892 132.857 -84.220502
+> 481 57.168 100.497 43.329 75.792401
+> 482 184.720 128.501 56.219 -30.434712
+> EOF
+> cat > work/finish_report.py <<'PY'
+> from pathlib import Path
+> import statistics,re,zipfile
+> rows=[x.split() for x in Path('work/volumes.txt').read_text().splitlines()]
+> assert len(rows)==73 and len({r[0] for r in rows})==73
+> for cid,vr,vp,err,pct in rows:
+>     assert abs(abs(float(vp)-float(vr))-float(err))<0.00001
+>     assert abs(100*(float(vp)-float(vr))/float(vr)-float(pct))<0.00001
+> assert abs(statistics.mean(float(r[3]) for r in rows)-42.950740)<0.000001
+> parts=[]
+> for chunk in [rows[:37],rows[37:]]:
+>     s=r'\begin{minipage}[t]{0.49\linewidth}\centering\small\setlength{\tabcolsep}{3pt}'+'\n'
+>     s+=r'\begin{tabular}{@{}lrrrr@{}}\toprule Case & $V_r$ & $V_p$ & $E_V$ & $e_{\%}$\\\midrule'+'\n'
+>     for cid,vr,vp,err,pct in chunk:
+>         s+=f'{cid} & {vr} & {vp} & {err} & {float(pct):.2f}'+r'\\'+'\n'
+>     s+=r'\bottomrule\end{tabular}\end{minipage}'
+>     parts.append(s)
+> p=Path('outputs/main.tex')
+> s=p.read_text().replace('% VOLUME_TABLE', '\n'+r'\hfill'.join(parts))
+> # Verify all referenced image paths before compilation.
+> for name in re.findall(r'\\fig\{([^}]+)\}',s):
+>     assert (Path('outputs/figures')/(name+'.png')).exists(),name
+> p.write_text(s)
+> print('Inserted 73 verified volume records; referenced figures exist.')
+> PY
+> python3 work/finish_report.py`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> </details>
+>
+> The built-in preview compiler cannot access separate image files. I’m adding labelled fallbacks for that preview; the Overleaf bundle will include the actual figures and display them automatically. I’ll use the compiler to check the text and tables, but the final layout with images will still need checking in Overleaf.
+>
+> <details><summary>Ran 2 commands</summary>
+>
+> - Ran `cat > work/preview_fallback.py <<'PY'
+> from pathlib import Path
+> p=Path('outputs/main.tex'); s=p.read_text()
+> s=s.replace(r'\newcommand{\fig}[3]{\begin{center}\includegraphics[width=\linewidth,height=#2,keepaspectratio]{figures/#1.png}\captionof{figure}{#3}\end{center}}',r'''% The built-in single-file preview cannot access image assets.
+> % Overleaf uses the actual PNGs from the bundled figures directory.
+> \newcommand{\asset}[2]{\IfFileExists{figures/#1.png}{\includegraphics[width=\linewidth,height=#2,keepaspectratio]{figures/#1.png}}{\fbox{\parbox[c][#2][c]{0.94\linewidth}{\centering\small Figure: \texttt{\detokenize{#1.png}}\\Image is included in the Overleaf bundle.}}}}
+> \newcommand{\fig}[3]{\begin{center}\asset{#1}{#2}\captionof{figure}{#3}\end{center}}''')
+> for rank in ['best','median','worst']:
+>     s=s.replace(r'\includegraphics[width=\linewidth,height=43mm,keepaspectratio]{figures/errors-'+rank+'.png}',r'\asset{errors-'+rank+'}{43mm}')
+> s=s.replace(r'\fig{augmentation}{33mm}',r'\fig{augmentation}{25mm}')
+> s=s.replace(r'\fig{training-curves}{37mm}',r'\fig{training-curves}{32mm}')
+> s=s.replace('Blocks use two $3^3$ convolutions with instance normalisation and LeakyReLU; downsampling uses max pooling and upsampling uses transposed convolutions with skip concatenation. Both runs reset seed 100 before model initialization. The split contains 338 training, 73 validation and 73 test cases.','Convolution blocks use instance normalisation and LeakyReLU; pooling and transposed-convolution upsampling connect through skip concatenation. Both runs reset seed 100 before initialization. Split: 338 train / 73 validation / 73 test cases.')
+> p.write_text(s)
+> PY
+> python3 work/preview_fallback.py`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran `cat > outputs/README.txt <<'EOF'
+> OVERLEAF REPORT
+>
+> Upload overleaf-report.zip to Overleaf as a new project, or upload main.tex
+> and the figures folder together. Keep main.tex as the main document.
+>
+> The existing main.tex has been updated in place. Interpretations remain
+> "(Write what you wanted to write here.)". References remain placeholders.
+> The original images have been copied unchanged. The separate 3x3 overlay
+> images and redundant metric charts are retained in figures for optional use.
+>
+> The desktop compiler only receives one source file, so its preview shows
+> labelled figure boxes. Overleaf displays the supplied PNG files instead.
+> The source compiles successfully with the built-in compiler using those
+> fallbacks. Final image layout and final page count must be checked in
+> Overleaf after adding your interpretations. The layout targets six main
+> pages plus two appendix pages; explicit page breaks mark the allocation.
+> Remove the reserved vertical space on bonus pages as you add prose.
+>
+> RESULT LABELS CHECKED AGAINST YOUR CODE
+> - Normalisation table: pooled training statistics BEFORE normalisation.
+> - Validation FP volumes: mL, despite the output's printed mm^3 label.
+> - Direct validation and sliding-window validation are separate protocols.
+> - Percentage volume error: signed; mean absolute percentage error is separate.
+> - Main test summary and 73-case volume table: BEFORE component filtering.
+> - Best/median/worst cases: AFTER the min_1ml rule.
+> - Missing-modality experiment: first five test cases, not all 73.
+> - Seam experiment: all 73 cases; 0% is nominal because terminal windows overlap.
+> - Cached prediction timings were omitted: existing cache files are skipped,
+>   so those elapsed times cannot be treated as clean inference benchmarks.
+> - The seam experiment's small numerical difference from the cached baseline
+>   is retained. The code caches probabilities as float16 for the main test
+>   evaluation, while the seam test uses fresh inference output; outputs alone
+>   do not establish that this is the sole cause of the difference.
+>
+> RESULTS STILL NEEDED
+> 1. Measured means/SDs after normalisation.
+> 2. Case-wise Dice, IoU, sensitivity and HD95 for all 73 cases. Your code
+>    computes these in test_res['uniform'], but the supplied output prints
+>    only aggregate statistics and case-wise volumes.
+> 3. Complete postprocessing metrics (including IoU, SDs/medians and case-wise
+>    volumes/errors) from pp_res[('test','uniform','min_1ml')].
+> 4. Hardware for timing results and factual timing of component-rule selection.
+>
+> The report does not claim the test labels were never accessed earlier:
+> your notebook uses them for split-volume descriptions and geometry checks.
+> It also does not assert that postprocessing was selected before testing.
+> These facts should be addressed accurately in your own methods discussion.
+>
+> When the missing per-case metrics arrive, rebalance the appendix tables
+> within the two-page allowance rather than adding pages automatically.
+> EOF
+> python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> root=Path('outputs')
+> with zipfile.ZipFile(root/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [root/'main.tex',root/'README.txt',*sorted((root/'figures').glob('*.png'))]:
+>         z.write(p,p.relative_to(root))
+> print('Overleaf bundle contains source, instructions and 14 original images.')
+> PY`
+>
+> </details>
+</details>
+
+Updated [main.tex](./outputs/main.tex) with your relevant figures, results, methods and all 73 case-volume records. Your interpretations and references remain blank.
+
+[Download the complete Overleaf bundle](./outputs/overleaf-report.zip).
+
+Compilation passed. The desktop preview uses figure placeholders; Overleaf displays the included images. Check the final page count after adding your writing.
+
+Still missing from the supplied outputs: **post-normalisation statistics, full case-wise segmentation metrics, and complete postprocessing results**. These are marked explicitly in the report.
+
+> For the task definition and spacial interpretation can you please just directly copy and paste my written paragraph:
+>
+> The input is going to be 4 channel volumes: Flair, T1-weighted, T1 contrast-enhanced and T2 weighted. Combined with depth, width and height, the input is a vector with dimensions (4, H, W, D). Our output is a binary segmentation mask for every voxel, meaning it will be of the dimension (H, W, D). The unit of analysis is going to be the voxel, as this is what we mask and what the modle is classifying. Additionally, we cannot share voxels from the same patient among our train, validation or test sets. The intended technical use is to build an end-to-end pipeline that educationally teaches and demonstrates how to do image segmentation for MRI.
+>
+> A voxel is a 3D pixel. A slice is a 2d sheet of voxels, so has Height, width and depth of 1 voxel unit. A volume will be a slice but with D voxels as depth. A patient case is 4 channels worth of volumes plus the segmentation label.
+>
+> perhaps organise it a little to make it easier to read but DO NOT change the wording. And furthermore just make sure the sections in purple have a place for me to write in them but unnecessary things do not.
+>
+> And just clean unnecessary things as well
+>
+> User context
+>
+> Images:
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/TemporaryItems/NSIRD_screencaptureui_RlSLYN/Screenshot 2026-10-14 at 4.12.59 PM.png`
+
+<details><summary>2 previous messages</summary>
+
+> I’ll insert your wording exactly, using paragraph breaks to make it easier to read. I’ll also remove unnecessary prompts and keep writing spaces for the highlighted requirements.
+>
+> <details><summary>Explored a file, ran 2 commands</summary>
+>
+> <details><summary>Explored a file</summary>
+>
+> - Read `./outputs/main.tex`
+>
+> </details>
+>
+> - Ran ```cat > work/clean_report.py <<'PY'
+> from pathlib import Path
+> p=Path('outputs/main.tex'); s=p.read_text()
+> start=s.index(r'\begin{tabularx}',s.index(r'\section*{A.'))
+> end=s.index(r'\fig{modalities}',start)
+> paragraph='''The input is going to be 4 channel volumes: Flair, T1-weighted, T1 contrast-enhanced and T2 weighted. Combined with depth, width and height, the input is a vector with dimensions (4, H, W, D). Our output is a binary segmentation mask for every voxel, meaning it will be of the dimension (H, W, D).
+>
+> The unit of analysis is going to be the voxel, as this is what we mask and what the modle is classifying. Additionally, we cannot share voxels from the same patient among our train, validation or test sets. The intended technical use is to build an end-to-end pipeline that educationally teaches and demonstrates how to do image segmentation for MRI.
+>
+> A voxel is a 3D pixel. A slice is a 2d sheet of voxels, so has Height, width and depth of 1 voxel unit. A volume will be a slice but with D voxels as depth. A patient case is 4 channels worth of volumes plus the segmentation label.
+>
+> '''
+> s=s[:start]+paragraph+s[end:]
+> s=s.replace(r'\prompt{Geometry/interpolation explanation and normalisation justification.}'+'\n','')
+> s=s.replace(r'\prompt{Justify transforms and crop/pad consistency.}',r'\prompt{Justify the transforms.}')
+> s=s.replace(r'\prompt{Explain the mechanism behind the observed sampling difference.}',r'\prompt{Compare uniform and tumour-aware sampling under the shared controls and explain the mechanism behind any difference.}')
+> s=s.replace(r'\prompt{Independent justification, selection timing and effect of the component rule.}',r'\prompt{Discuss results before and after postprocessing; justify the rule independently of test-score improvement.}')
+> # Make the actual highlighted bonus writing requirements visible.
+> first=r'\prompt{Interpretation (150--250 words).}'
+> s=s.replace(first,r'\prompt{Interpretation (150--250 words): compare Dice, HD95 and volume error with the four-channel result; identify the most influential channel; explain the limitations of zeroing and how training could accommodate missing modalities.}',1)
+> s=s.replace(first,r'\prompt{Interpretation (150--250 words): compare runtime and metrics, explain when overlap helps, and why choosing overlap through repeated inspection of test labels would bias the result.}',1)
+> s=s.replace('The reported identity affine maps this plane to $z=77$\\,mm.','The identity affine maps this plane to $z=77$\\,mm.')
+> s=s.replace('These are central array planes; the supplied sagittal panel contains no visible tumour. Original label intensities are retained.','Central array planes with original label intensities; the sagittal panel contains no visible tumour.')
+> s=s.replace('BRATS\\_001, FLAIR and original label at $k=77$: paired supplied before/after example. The demonstration applies rotation then flip; the training transform list applies flip then rotation. The sampled angle was not logged.','BRATS\\_001, FLAIR and label at $k=77$, before/after augmentation. Demonstration: rotation then flip; training: flip then rotation.')
+> s=s.replace('Supplied learning curves.','Learning curves.')
+> s=s.replace(' All metrics are case means. FP volume is in mL: the code divides voxel volume in mm$^3$ by 1,000 despite the printed ``mm$^3$\'\' label.',' All metrics are case means; FP volume is in mL.')
+> s=s.replace('Unaltered supplied three-plane overlays:','Three-plane overlays:')
+> s=s.replace('Metrics for the displayed postprocessed cases. Dice uses the supplied figure precision; remaining metrics use the rounded supplied table.','Metrics for the displayed postprocessed cases.')
+> s=s.replace('The supplied experiment uses','The experiment uses')
+> s=s.replace('Supplied plots for the five-case missing-modality experiment. These are not the 73-case baseline results in Section F.','Five-case missing-modality results; the baseline uses these same five cases.')
+> s=s.replace(r'\textbf{Actual implementation excerpt.} Context:',r'\textbf{Code excerpt.}')
+> s=s.replace(r'\textbf{Actual implementation excerpts.} Context:',r'\textbf{Code excerpts.}')
+> s=s.replace(' Hardware was not supplied.','')
+> s=s.replace('Supplied reference tumour-volume distributions. The plotted unit is mm$^3$ (divide by 1,000 for mL). No numerical quartiles were supplied.','Reference tumour-volume distributions in mm$^3$.')
+> marker=r'\fig{split-volumes}{47mm}{Reference tumour-volume distributions in mm$^3$.}'
+> assert marker in s
+> s=s.replace(marker,marker+'\n'+r'\prompt{Describe the reference tumour-volume distribution in each split.}')
+> # Remove duplicated editorial checklist from the printed report; retain
+> # required missing-result slots at their relevant sections and README.
+> a=s.index(r'\textbf{Evidence still to add before submission.}')
+> b=s.index(r'\end{itemize}',a)+len(r'\end{itemize}')
+> s=s[:a]+s[b:]
+> s=s.replace('All 73 supplied raw case-volume records','All 73 raw case-volume records')
+> s=s.replace('The following are the supplied \\emph{pre-postprocessing} results.','These are the \\emph{pre-postprocessing} results.')
+> s=s.replace(' Case-wise overlap/boundary metrics were not supplied and are not inferred from volumes.','')
+> s=s.replace('Complete supplied raw case-volume results,','Raw case-volume results,')
+> # Remove obsolete commentary instructions; retain useful LaTeX editing hints.
+> s=s.replace('% Earlier request omitted a standalone B section; split evidence is retained\n% here because the current results include it.\n','')
+> s=s.replace('% Fixed page breaks target six main pages + two appendix pages.','% Fixed page breaks target six main pages + two appendix pages.\n% The supplied submission instructions exclude references from the six-page limit.')
+> # Validate verbatim wording, allowing only paragraph/whitespace changes.
+> actual=s[s.index('The input is going'):s.index(r'\fig{modalities}')]
+> assert ' '.join(actual.split())==' '.join(paragraph.split())
+> p.write_text(s)
+> print('Inserted exact wording; removed redundant prompts and editorial checklist.')
+> PY
+> python3 work/clean_report.py```
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> root=Path('outputs')
+> p=root/'README.txt'
+> s=p.read_text().replace('The layout targets six main\npages plus two appendix pages; explicit page breaks mark the allocation.','The layout targets six main\npages plus two appendix pages; references are excluded from the six-page\nlimit in the supplied submission instructions. Explicit page breaks mark\nthe allocation.')
+> p.write_text(s)
+> with zipfile.ZipFile(root/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [root/'main.tex',root/'README.txt',*sorted((root/'figures').glob('*.png'))]:
+>         z.write(p,p.relative_to(root))
+> PY`
+>
+> </details>
+</details>
+
+Updated the open document with your wording **exactly**, including spelling, organised into three paragraphs.
+
+Removed redundant prompts and editorial notes, while keeping writing spaces for the purple-highlighted requirements. Compilation passed.
+
+[Updated Overleaf bundle](./outputs/overleaf-report.zip)
+
+> Okay remove all appendix work below this:
+>
+> For each of the three cases, the reported image affine is
+> A001 = A003 = A004 =
+> ⎡
+> ⎢
+> ⎢
+> ⎣
+> 1 0 0 0
+> 0 1 0 0
+> 0 0 1 0
+> 0 0 0 1
+> ⎤
+> ⎥
+> ⎥
+> ⎦
+>
+> Additionally, find the areas in my code where each image on the report corresponds to
+
+<details><summary>2 previous messages</summary>
+
+> I’ll remove everything in the appendix after the affine matrix, then map each figure still in the report to the code that generated it.
+>
+> <details><summary>Explored 2 files, 2 searches, ran 2 commands</summary>
+>
+> <details><summary>Explored 4 files, 2 searches</summary>
+>
+> - Searched for `appendix|A_\{|A_001|\\fig\{|\\asset\{|app:cases|affine is` in `main.tex`
+> - Searched for `fig, axes|plt.figure|plt.subplots|plt.boxplot|plot.bar|plt.savefig|set_title|fig.suptitle|u_train_losses|a_train_losses` in `Pasted text.txt`
+> - Read `./outputs/main.tex`
+> - Read `~/.codex/attachments/1a77a317-e5c4-4ee3-b0f6-4718b435eba1/Pasted text.txt`
+> - Read `~/.codex/attachments/1a77a317-e5c4-4ee3-b0f6-4718b435eba1/Pasted text.txt`
+> - Read `~/.codex/attachments/1a77a317-e5c4-4ee3-b0f6-4718b435eba1/Pasted text.txt`
+>
+> </details>
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> p=Path('outputs/main.tex'); s=p.read_text()
+> a=s.index('For each of the three cases, the reported image affine is')
+> b=s.index(r'\]',a)+2
+> s=s[:b]+'\n\n\\end{document}\n'
+> s=s.replace('All 73 raw case-volume records appear in Appendix~\\ref{app:cases}.\n','')
+> s=s.replace('% Fixed page breaks target six main pages + two appendix pages.','% Fixed page breaks target six main pages, followed by the geometry appendix.')
+> p.write_text(s)
+> source=Path('/Users/adam.badr/.codex/attachments/1a77a317-e5c4-4ee3-b0f6-4718b435eba1/Pasted text.txt').read_text().splitlines()
+> for start,end in [(1306,1345),(1385,1442),(1498,1523)]:
+>     print('\n'.join(f'{i+1}: {source[i]}' for i in range(start-1,min(end,len(source)))))
+> PY`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran ``python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> root=Path('outputs')
+> maptext='''# Report figures mapped to your code
+>
+> Line numbers refer to the pasted code file supplied with your results. Search the quoted expressions in your notebook if its line numbering differs.
+>
+> | Report figure | Image file | Code location | Search for |
+> |---|---|---|---|
+> | 1: four modalities and reference | modalities.png | Section A, lines 98–126; plotting starts at 106 | `plt.subplots(1, 5, figsize=(20, 4))` |
+> | 2: sagittal/coronal/axial reference | reference-planes.png | Section A, lines 141–163 | `sagittal = label_data` |
+> | 3: augmentation before/after | augmentation.png | Section C, lines 421–465; plotting starts at 441 | `#Show a before and after` |
+> | 4: training losses and validation Dice | training-curves.png | Section D, data at 918–929; plotting at 932–956 | `ax[0].plot(u_train_losses, label="train")` |
+> | 5, top: best-case error overlays | errors-best.png | Section G, lines 1309–1344, loop iteration `tag == "best"` | `plt.savefig(f"errors_{tag}.png", dpi=150)` |
+> | 5, middle: median-case error overlays | errors-median.png | Same Section G loop, `tag == "median"` | `for tag, r in picks.items():` |
+> | 5, bottom: worst-case error overlays | errors-worst.png | Same Section G loop, `tag == "worst"` | `for tag, r in picks.items():` |
+> | 6: missing-modality bars | missing-modality.png | Bonus 1, plotting at 1440–1441; experiment/aggregation at 1391–1438 | `summary[["dice", "hd95_median", "abs_err_ml"]].plot.bar` |
+> | 7: seam probability differences | seam-difference.png | Bonus 2, plotting at 1503–1522 | `diff = np.abs(keep[ov] - keep[0.5])` |
+>
+> The Section G report figure uses the one-row TP/FP/FN plots, not the earlier three-row plots saved as `overlay_{tag}.png`. The code saves `errors_best.png`, `errors_median.png`, and `errors_worst.png`; the report copies use hyphens in their filenames. All three masks are generated in the same loop, whose original iteration order is worst, median, best. The report places them best, median, worst.
+>
+> The split-volume plot (`plt.boxplot`, line 252) was removed from the report with the appendix material below the affine matrix. The separate best/median/worst metric bars and the three-row reference/prediction grids are not displayed in the current report.
+> '''
+> (root/'figure-code-map.md').write_text(maptext)
+> p=root/'README.txt'; s=p.read_text()
+> s=s.replace('The layout targets six main\npages plus two appendix pages; references are excluded from the six-page','The layout targets six main\npages followed by the geometry appendix; references are excluded from the six-page')
+> s=s.replace('- Main test summary and 73-case volume table: BEFORE component filtering.','- Main test summary: BEFORE component filtering. The case-volume appendix\n  was removed at your request; the appendix now ends after the affine matrix.')
+> s=s.replace('When the missing per-case metrics arrive, rebalance the appendix tables\nwithin the two-page allowance rather than adding pages automatically.','Figure-to-code locations are listed in figure-code-map.md, separately from\nthe report.')
+> p.write_text(s)
+> with zipfile.ZipFile(root/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [root/'main.tex',root/'README.txt',root/'figure-code-map.md',*sorted((root/'figures').glob('*.png'))]:
+>         z.write(p,p.relative_to(root))
+> PY``
+>
+> </details>
+</details>
+
+Removed everything after the affine matrix in the appendix, including the case-volume tables, and removed the reference to that deleted appendix. Compilation passed.
+
+These locations refer to **line numbers in your pasted code**:
+
+| Report image | Code location | Search for |
+|---|---|---|
+| Four modalities + reference | A, lines 98–126 | `plt.subplots(1, 5` |
+| Three-plane reference | A, lines 141–163 | `sagittal = label_data` |
+| Before/after augmentation | C, lines 421–465 | `#Show a before and after` |
+| Training curves | D, lines 932–956 | `ax[0].plot(u_train_losses` |
+| Best, median and worst error overlays | G, lines 1309–1344 | `plt.savefig(f"errors_{tag}.png"` |
+| Missing-modality bar charts | Bonus 1, lines 1440–1441 | `summary[["dice", "hd95_median", "abs_err_ml"]].plot.bar` |
+| Sliding-window seam plots | Bonus 2, lines 1503–1522 | `diff = np.abs(keep[ov] - keep[0.5])` |
+
+The three error-overlay images come from the **same loop**, with `tag` equal to `"best"`, `"median"` or `"worst"`.
+
+[Updated Overleaf bundle](./outputs/overleaf-report.zip) · [Detailed figure-to-code map](./outputs/figure-code-map.md)
+
+> Can you return me this latex with the location of the images set? All images will live in images/<imagename>
+>
+> User context
+>
+> Attachments:
+> - \documentclass[10pt,a4paper]{article} \usepackage[margin=18mm]{geometry} \usepa…: `~/.codex/attachments/56ac7410-1007-46e5-aed7-740f179ed2a5/Pasted text.txt`
+
+<details><summary>2 previous messages</summary>
+
+> I’ll update the image paths to `images/<imagename>` and check that the LaTeX still compiles.
+>
+> <details><summary>Explored a file, a search, ran 2 commands</summary>
+>
+> <details><summary>Explored a file, a search</summary>
+>
+> - Read `~/.codex/attachments/56ac7410-1007-46e5-aed7-740f179ed2a5/Pasted text.txt`
+> - Searched for `figures/|images/|includegraphics|newcommand.*asset|newcommand.*fig` in `main.tex`
+>
+> </details>
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import re,shutil
+> root=Path('outputs'); p=root/'main.tex'; s=p.read_text()
+> old=next(line for line in s.splitlines() if line.startswith(r'\newcommand{\asset}'))
+> new=r'''\newcommand{\asset}[2]{%
+>   \IfFileExists{#1}{%
+>     \includegraphics[width=\linewidth,height=#2,keepaspectratio]{#1}%
+>   }{%
+>     \fbox{\parbox[c][#2][c]{0.94\linewidth}{\centering\small
+>       Figure: \texttt{\detokenize{#1}}\\
+>       Image is included in the Overleaf bundle.}}%
+>   }%
+> }'''
+> s=s.replace(old,new)
+> s=s.replace('bundled figures directory','bundled images directory').replace('figures/overlay-*.png','images/overlay-*.png')
+> def fix(m):
+>     name=m.group(2).split('/')[-1]
+>     if not name.endswith('.png'): name+='.png'
+>     return '\\'+m.group(1)+'{images/'+name+'}'
+> s=re.sub(r'\\(fig|asset)\{([^{}#]+)\}',fix,s)
+> (root/'images').mkdir(exist_ok=True)
+> for image in (root/'figures').glob('*.png'):
+>     shutil.copy2(image,root/'images'/image.name)
+> paths=re.findall(r'\\(?:fig|asset)\{(images/[^}]+)\}',s)
+> assert len(paths)==9
+> assert all((root/path).exists() for path in paths)
+> p.write_text(s)
+> print('\n'.join(paths))
+> PY`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> r=Path('outputs'); p=r/'README.txt'
+> s=p.read_text().replace('figures folder','images folder').replace('retained in figures','retained in images').replace('figures directory','images directory')
+> p.write_text(s)
+> with zipfile.ZipFile(r/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [r/'main.tex',r/'README.txt',r/'figure-code-map.md',*sorted((r/'images').glob('*.png'))]:
+>         z.write(p,p.relative_to(r))
+> PY`
+>
+> </details>
+</details>
+
+Updated all nine image paths to `images/<imagename>.png`. Compilation passed.
+
+- [Updated LaTeX file](./outputs/main.tex)
+- [Overleaf bundle with the images folder](./outputs/overleaf-report.zip)
+
+Image commands now use explicit paths, for example:
+
+```latex
+\fig{images/modalities.png}{27mm}{Your caption}
+\asset{images/errors-best.png}{43mm}
+```
+
+> Hello can you please make some of the images especially before E bigger
+
+<details><summary>2 previous messages</summary>
+
+> I’ll enlarge the figures before section E, especially the augmentation example and training curves, then check compilation.
+>
+> <details><summary>Explored a file, ran 2 commands</summary>
+>
+> <details><summary>Explored a file</summary>
+>
+> - Read `./outputs/main.tex`
+>
+> </details>
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> p=Path('outputs/main.tex'); s=p.read_text()
+> for name,old,new in [('modalities',27,36),('reference-planes',29,42),('training-curves',32,46)]:
+>     a=f'\\fig{{images/{name}.png}}{{{old}mm}}'
+>     assert a in s
+>     s=s.replace(a,f'\\fig{{images/{name}.png}}{{{new}mm}}')
+> a=s.index('Training uses an axis-0 flip')
+> b=s.index(r'\section*{D.',a)
+> block=s[a:b]
+> text,figure=block.split(r'\fig',1)
+> figline,prompt=figure.split('\n',1)
+> # A two-column example doubles image height without consuming an extra page.
+> new=r'''\noindent\begin{minipage}[t]{0.46\linewidth}
+> \vspace{0pt}
+> '''+text.strip()+'\n\n'+prompt.strip()+r'''
+> \end{minipage}\hfill
+> \begin{minipage}[t]{0.50\linewidth}
+> \vspace{0pt}\centering
+> \asset{images/augmentation.png}{52mm}
+> \captionof{figure}{BRATS\_001, FLAIR and label at $k=77$, before/after augmentation. Demonstration: rotation then flip; training: flip then rotation.}
+> \end{minipage}
+> \par\medskip
+>
+> '''
+> s=s[:a]+new+s[b:]
+> p.write_text(s)
+> PY`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> r=Path('outputs')
+> with zipfile.ZipFile(r/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [r/'main.tex',r/'README.txt',r/'figure-code-map.md',*sorted((r/'images').glob('*.png'))]:
+>         z.write(p,p.relative_to(r))
+> PY`
+>
+> </details>
+</details>
+
+Enlarged all four figures before section E. The augmentation image is roughly twice as tall, with its explanation alongside it to save space. Training curves and MRI views are also larger.
+
+Compilation passed. [Updated Overleaf bundle](./outputs/overleaf-report.zip).
+
+> Perfect. Just remove the code excerpt unless absolutely necessary
+
+<details><summary>2 previous messages</summary>
+
+> I’ll remove the code excerpts and keep brief references to the corresponding notebook sections. Both bonuses require code, but it can remain in your submitted notebook rather than being duplicated in the report.
+>
+> <details><summary>Explored a search, ran 2 commands</summary>
+>
+> <details><summary>Explored a search</summary>
+>
+> - Searched for `Code excerpt|lstlisting|lstset|listings` in `main.tex`
+>
+> </details>
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import re
+> p=Path('outputs/main.tex'); s=p.read_text()
+> pattern=r'\\textbf\{Code excerpts?\.\}.*?\\end\{lstlisting\}'
+> replacements=iter([r'Implementation: notebook, Bonus 1 (missing-modality stress test).',r'Implementation: notebook, Bonus 2 (sliding-window seam test).'])
+> s,n=re.subn(pattern,lambda m:next(replacements),s,flags=re.S)
+> assert n==2
+> s=s.replace('caption,enumitem,listings,titlesec','caption,enumitem,titlesec')
+> s=re.sub(r'\\lstset\{.*?\}\n','',s,count=1,flags=re.S)
+> p.write_text(s)
+> PY`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> r=Path('outputs')
+> with zipfile.ZipFile(r/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [r/'main.tex',r/'README.txt',r/'figure-code-map.md',*sorted((r/'images').glob('*.png'))]:
+>         z.write(p,p.relative_to(r))
+> PY`
+>
+> </details>
+</details>
+
+Removed both code excerpts and replaced them with brief notebook references. Compilation passed.
+
+[Updated Overleaf bundle](./outputs/overleaf-report.zip)
+
+> Can you please fully remove the appendix as there is nothing worthwhile there, and can you change the promting so it gives me a section I can type in?
+>
+> User context
+>
+> Attachments:
+> - \documentclass[10pt,a4paper]{article} \usepackage[margin=18mm]{geometry} \usepa…: `~/.codex/attachments/7e3cf6a9-272b-4f1d-986c-e837dda0aacd/Pasted text.txt`
+
+<details><summary>2 previous messages</summary>
+
+> I’ll remove the appendix and its reference, then turn the writing prompts into subsection headings with a simple placeholder underneath.
+>
+> <details><summary>Explored a file, ran 3 commands</summary>
+>
+> <details><summary>Explored a file</summary>
+>
+> - Read `./outputs/main.tex`
+>
+> </details>
+>
+> - Ran `diff -u outputs/main.tex '/Users/adam.badr/.codex/attachments/7e3cf6a9-272b-4f1d-986c-e837dda0aacd/Pasted text.txt'`
+>
+> - Ran `cat > work/writing_sections.py <<'PY'
+> from pathlib import Path
+> import re
+> p=Path('outputs/main.tex'); s=p.read_text()
+> s=s[:s.index(r'\clearpage\appendix')].rstrip()+'\n\n\\end{document}\n'
+> s=re.sub(r'^Inspection of BRATS.*?Appendix.*?\n','',s,flags=re.M)
+> s=s.replace('% Fixed page breaks target six main pages, followed by the geometry appendix.','% Fixed page breaks separate the six main-report groups.')
+> headings={
+> 'Why file-index order alone is insufficient for spatial interpretation.':'Spatial interpretation',
+> 'Justify the transforms.':'Augmentation rationale',
+> 'Identify underfitting, instability or overfitting using validation evidence only.':'Training behaviour',
+> 'Compare uniform and tumour-aware sampling under the shared controls and explain the mechanism behind any difference.':'Sampling comparison',
+> 'Validation-only selection rationale and disadvantage of excessive oversampling.':'Final configuration and oversampling trade-off',
+> 'Discuss results before and after postprocessing; justify the rule independently of test-score improvement.':'Postprocessing evaluation',
+> 'Relate an observed error to boundary quality, small structures or patch context.':'Error analysis',
+> 'Compare Dice, HD95 and volume error; explain why one metric is insufficient.':'Metric comparison',
+> 'Interpretation (150--250 words): compare Dice, HD95 and volume error with the four-channel result; identify the most influential channel; explain the limitations of zeroing and how training could accommodate missing modalities.':'Missing-modality interpretation (150--250 words)',
+> 'Interpretation (150--250 words): compare runtime and metrics, explain when overlap helps, and why choosing overlap through repeated inspection of test labels would bias the result.':'Seam-test interpretation (150--250 words)',
+> }
+> for guidance,title in headings.items():
+>     old=r'\prompt{'+guidance+'}'
+>     assert old in s,guidance
+>     s=s.replace(old,r'\subsection*{'+title+'}\n% '+guidance+'\n% Replace the following sentence with your own text.\nWrite your text here.\n')
+> s=s.replace(r'\newcommand{\prompt}[1]{\textbf{#1} \TODO\par}'+'\n','')
+> s=s.replace(r'\textbf{Limitations.}',r'\subsection*{Limitations}')
+> s=s.replace(r'\item Small training budget (10 epochs per model): \TODO',r'\item \textbf{Small training budget.} Write your text here.')
+> s=s.replace(r'\item Lack of external-site validation: \TODO',r'\item \textbf{Lack of external-site validation.} Write your text here.')
+> s=s.replace(r'\item Additional limitation grounded in this experiment: \TODO',r'\item \textbf{Additional limitation.} Write your text here.')
+> # Put the augmentation writing area below the side-by-side layout so prose
+> # can grow across the full width rather than within a fixed minipage.
+> a=s.index(r'\subsection*{Augmentation rationale}')
+> b=s.index(r'\end{minipage}',a)
+> block=s[a:b]; s=s[:a]+s[b:]
+> pos=s.index(r'\par\medskip',a)+len(r'\par\medskip')
+> s=s[:pos]+'\n\n'+block+s[pos:]
+> # Missing numerical outputs get their own editable area, with instructions
+> # kept as source comments instead of long printed prompts.
+> s=s.replace(r'\missing{measured channel means and SDs after normalisation}.', '\n'+r'\subsection*{Post-normalisation statistics}'+'\n% Add measured means and SDs after normalisation; these outputs are still needed.\nWrite your results here.')
+> s=s.replace(r'\missing{case-wise Dice/IoU/sensitivity/HD95, plus complete postprocessing summaries and case-wise results}.',r'\subsection*{Case-wise and postprocessing results}'+'\n% Add the missing case-wise Dice, IoU, sensitivity, HD95 and complete postprocessing results.\nWrite your results here.')
+> s=s.replace(r'\newcommand{\missing}[1]{\textit{[Result still needed: #1.]}}'+'\n','')
+> s=re.sub(r'\\vspace\{(?:42|25)mm\} % Reserved writing space: remove as interpretation grows\.\n','',s)
+> assert r'\appendix' not in s and r'\prompt{' not in s
+> p.write_text(s)
+> PY
+> python3 work/writing_sections.py`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> r=Path('outputs'); p=r/'README.txt'
+> p.write_text('''OVERLEAF REPORT
+>
+> Upload overleaf-report.zip as a new Overleaf project. main.tex is the main
+> file; all images are in images/.
+>
+> The appendix has been removed. Interpretation areas are now subsections.
+> Replace "Write your text here." or "Write your results here." directly
+> with your writing. Guidance remains in LaTeX comments above each area.
+> References remain placeholders. No new interpretations have been added.
+>
+> The built-in single-file compiler shows labelled figure boxes; Overleaf
+> loads the included images. Compilation passed with the built-in compiler.
+> Check final pagination in Overleaf after writing your interpretations.
+> The assignment limit is six report pages, excluding references.
+>
+> Remaining numerical outputs include post-normalisation means/SDs,
+> case-wise segmentation metrics and complete postprocessing results.
+> These have labelled areas in the report. The removed appendix material
+> has not been relocated elsewhere in the report.
+>
+> See figure-code-map.md for the locations of each figure in your pasted code.
+> ''')
+> with zipfile.ZipFile(r/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [r/'main.tex',r/'README.txt',r/'figure-code-map.md',*sorted((r/'images').glob('*.png'))]:
+>         z.write(p,p.relative_to(r))
+> PY`
+>
+> </details>
+</details>
+
+Removed the entire appendix and its reference. Writing prompts are now subsection headings with **“Write your text here.”** underneath, ready to replace. Guidance remains in LaTeX comments.
+
+Compilation passed. [Updated Overleaf bundle](./outputs/overleaf-report.zip).
+
+> WHAT DID YOU ADD?? "pOST NORMALISATION STATISTICS?" Please just have it as it was. Literally all I want is for the "write your text here" to be a small {} where inside i type, not changing formatting at all
+
+<details><summary>2 previous messages</summary>
+
+> I misunderstood. I’ll restore the previous prompt formatting and replace only the writing placeholders with `{}`, without adding headings.
+>
+> <details><summary>Explored a file, a search, ran 2 commands</summary>
+>
+> <details><summary>Explored a file, a search</summary>
+>
+> - Read `./outputs/main.tex`
+> - Searched for `prompt|TODO|missing|subsection|Write your|appendix` in `main.tex`
+>
+> </details>
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import re
+> p=Path('outputs/main.tex'); s=p.read_text()
+> s=s.replace(r'\newcommand{\prompt}[1]{\textbf{#1} \TODO\par}',r'\newcommand{\prompt}[2]{\textbf{#1} #2\par}')
+> s=re.sub(r'^(\\prompt\{[^\n]*\})$',r'\1{}',s,flags=re.M)
+> s=s.replace(r'\newcommand{\TODO}{\textit{(Write what you wanted to write here.)}}'+'\n','')
+> s=s.replace(r'\TODO',r'{}')
+> p.write_text(s)
+> PY`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> r=Path('outputs'); p=r/'README.txt'
+> s=p.read_text(); a=s.index('The appendix has been removed.'); b=s.index('\nThe built-in',a)
+> s=s[:a]+'''The appendix has been removed. Original prompt formatting is retained.
+> Type your writing inside the empty second braces of each prompt:
+> \\prompt{Existing instruction}{Type your text here}
+> Other writing placeholders are empty {} groups. No new headings or
+> interpretations have been added.
+> '''+s[b:]; p.write_text(s)
+> with zipfile.ZipFile(r/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [r/'main.tex',r/'README.txt',r/'figure-code-map.md',*sorted((r/'images').glob('*.png'))]:
+>         z.write(p,p.relative_to(r))
+> PY`
+>
+> </details>
+</details>
+
+Sorry—I misunderstood. The original formatting is back, with no added headings. Type inside the final `{}`:
+
+```latex
+\prompt{Justify the transforms.}{}
+```
+
+The appendix remains removed. Compilation passed.
+
+> Okay simply, the highlight in green is where i need to speak, so make places for me to speak where the green highlighting is
+>
+> User context
+>
+> Images:
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/TemporaryItems/NSIRD_screencaptureui_GtJtmk/Screenshot 2026-10-14 at 4.54.06 PM.png`
+
+<details><summary>2 previous messages</summary>
+
+> I’ll match the writing spaces to the green highlights, using empty `{}` fields and keeping the existing formatting.
+>
+> <details><summary>Explored a search, ran 2 commands</summary>
+>
+> <details><summary>Explored a search</summary>
+>
+> - Searched for `prompt|missing|\\item|subsection` in `main.tex`
+>
+> </details>
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> p=Path('outputs/main.tex'); s=p.read_text()
+> s=s.replace(r'\prompt{Compare uniform and tumour-aware sampling under the shared controls and explain the mechanism behind any difference.}{}',r'''\prompt{Compare uniform and tumour-aware sampling under the same architecture, split, loss and training budget.}{}
+> \prompt{Explain the mechanism behind any difference.}{}''')
+> s=s.replace(r'\prompt{Validation-only selection rationale and disadvantage of excessive oversampling.}{}',r'''\prompt{Select one final configuration using validation evidence only.}{}
+> \prompt{State one disadvantage of excessive tumour oversampling.}{}''')
+> s=s.replace(r'\prompt{Discuss results before and after postprocessing; justify the rule independently of test-score improvement.}{}'+'\n','')
+> s=s.replace(r'\prompt{Compare Dice, HD95 and volume error; explain why one metric is insufficient.}{}',r'\prompt{Explain why one metric cannot summarize every failure.}{}')
+> s=s.replace(r'\newcommand{\prompt}[2]{\textbf{#1} #2\par}',r'''% Type your response inside the final {} of each \prompt line.
+> \newcommand{\prompt}[2]{\textbf{#1} #2\par}''')
+> p.write_text(s)
+> PY`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran `python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> r=Path('outputs')
+> with zipfile.ZipFile(r/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [r/'main.tex',r/'README.txt',r/'figure-code-map.md',*sorted((r/'images').glob('*.png'))]:
+>         z.write(p,p.relative_to(r))
+> PY`
+>
+> </details>
+</details>
+
+Done—each green-highlighted discussion now has an empty `{}` for your writing. No new headings or formatting changes. Compilation passed.
+
+[Updated Overleaf bundle](./outputs/overleaf-report.zip)
+
+> Is this image necessary for anything? If so, please add it into my existing file:
+>
+> \documentclass[10pt,a4paper]{article}
+> \usepackage[margin=18mm]{geometry}
+> \usepackage[T1]{fontenc}
+> \usepackage{lmodern,microtype,graphicx,xcolor}
+> \usepackage{amsmath,booktabs,tabularx,array}
+> \usepackage{caption,enumitem,titlesec}
+> \usepackage[hidelinks]{hyperref}
+> \setlength{\parindent}{0pt}
+> \setlength{\parskip}{4pt}
+> \setlength{\tabcolsep}{4pt}
+> \renewcommand{\arraystretch}{1.08}
+> \captionsetup{font=small,labelfont=bf,skip=3pt}
+> \setlist{nosep,leftmargin=*}
+> \titlespacing*{\section}{0pt}{8pt}{4pt}
+> \titlespacing*{\subsection}{0pt}{6pt}{3pt}
+> \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+> \newcommand{\val}{\textemdash}
+> % Type your response inside the final {} of each \prompt line.
+> \newcommand{\prompt}[2]{\textbf{#1} #2\par}
+> \newcommand{\missing}[1]{\textit{[Result still needed: #1.]}}
+> % The built-in single-file preview cannot access image assets.
+> % Overleaf uses the actual PNGs from the bundled images directory.
+> \newcommand{\asset}[2]{%
+>   \IfFileExists{#1}{%
+>     \includegraphics[width=\linewidth,height=#2,keepaspectratio]{#1}%
+>   }{%
+>     \fbox{\parbox[c][#2][c]{0.94\linewidth}{\centering\small
+>       Figure: \texttt{\detokenize{#1}}\\
+>       Image is included in the Overleaf bundle.}}%
+>   }%
+> }
+> \newcommand{\fig}[3]{\begin{center}\asset{#1}{#2}\captionof{figure}{#3}\end{center}}
+> % Figures are copied unchanged from the supplied outputs.
+> % All explanations/interpretations remain placeholders.
+> % Fixed page breaks separate the main-report groups.
+> % The supplied submission instructions exclude references from the six-page limit.
+> % Recheck page count after replacing placeholders with prose.
+> \begin{document}
+> {\Large\bfseries Whole-Tumour Segmentation with a 3D U-Net}\par
+> ENG 2440 Medical Imaging \& AI in Healthcare \hfill Fall 2026\\
+> Name: \val\quad Student ID: \val\quad Date: \val
+>
+> \section*{A. Task definition and spatial interpretation}
+> The input is going to be 4 channel volumes: Flair, T1-weighted, T1 contrast-enhanced and T2 weighted. Combined with depth, width and height, the input is a vector with dimensions (4, H, W, D). Our output is a binary segmentation mask for every voxel, meaning it will be of the dimension (H, W, D).
+>
+> The unit of analysis is going to be the voxel, as this is what we mask and what the modle is classifying. Additionally, we cannot share voxels from the same patient among our train, validation or test sets. The intended technical use is to build an end-to-end pipeline that educationally teaches and demonstrates how to do image segmentation for MRI.
+>
+> A voxel is a 3D pixel. A slice is a 2d sheet of voxels, so has Height, width and depth of 1 voxel unit. A volume will be a slice but with D voxels as depth. A patient case is 4 channels worth of volumes plus the segmentation label.
+>
+> \fig{images/modalities.png}{36mm}{BRATS\_001: four MRI channels and original multi-class reference at array index $k=77$ (zero-based). The identity affine maps this plane to $z=77$\,mm.}
+> \fig{images/reference-planes.png}{42mm}{BRATS\_001 reference: sagittal $i=120$, coronal $j=120$, axial $k=77$. Central array planes with original label intensities; the sagittal panel contains no visible tumour.}
+> \prompt{Why file-index order alone is insufficient for spatial interpretation.}{Spatial interpretation needs the affine matrix to map. Essentially $[x, y, z]^T = A\,[i, j, k]^T$, where $xyz$ is the spatial location and $ijk$ are the array coordinates. An array difference of 1 could correspond to any difference between real voxels.}
+>
+> \section*{C. Safe preprocessing}
+> I checked that the image and label shapes, voxel spacing and affine all match for every case, so no resampling was needed and training uses the native grid. I still wrote resampling functions in case they are needed later: linear interpolation for the MRI and nearest-neighbour for the labels. On a small made-up label array, the set of values went from $\{0,1,2,3\}$ to $\{0,2\}$ after resampling, so the labels stay valid (still a subset of the original values) and no new values appear.
+> \begin{center}
+> \captionof{table}{Pooled \emph{pre-normalisation} statistics of non-zero voxels across 338 training cases, used as fixed normalisation parameters.}
+> \begin{tabular}{lrrrr}\toprule
+> & FLAIR & T1 & T1ce & T2\\\midrule
+> Mean & 464.986 & 613.365 & 616.287 & 489.185\\
+> SD & 270.243 & 331.282 & 391.186 & 287.796\\\bottomrule
+> \end{tabular}
+> \end{center}
+> Each non-zero intensity is transformed as $(x-\mu_c)/\sigma_c$: a standard preprocessing step for neural networks. % Do not relabel the raw statistics as measured normalised results.
+>
+> \newpage
+> % MAIN PAGE 2
+> \section*{C. Preprocessing (continued)}
+> \noindent\begin{minipage}[t]{0.46\linewidth}
+> \vspace{0pt}
+> For training, I randomly flip the volume left to right (sagittal flip) with probability 0.25, and rotate it by a random angle between $-10^\circ$ and $10^\circ$ in the axial plane. The MRI is rotated with linear interpolation and the label with nearest-neighbour, so the label stays binary. Rotation keeps the array shape the same. Validation and test data are not augmented. Training uses $96^3$ patches, which are already divisible by 8, so they need no padding. Full-volume validation pads each dimension up to a multiple of 8 (depth 155 becomes 160), runs the model, then crops the output back to the original size.
+>
+> \prompt{Justify the transforms.}{}
+> \end{minipage}\hfill
+> \begin{minipage}[t]{0.50\linewidth}
+> \vspace{0pt}\centering
+> \asset{images/augmentation.png}{52mm}
+> \captionof{figure}{BRATS\_001, FLAIR and label at $k=77$, before/after augmentation. Demonstration: rotation then flip; training: flip then rotation.}
+> \end{minipage}
+> \par\medskip
+>
+> \section*{D. Patch-based volumetric training}
+> \begin{center}
+> \captionof{table}{Shared configuration for both sampling experiments.}
+> \begin{tabularx}{\linewidth}{@{}lYlY@{}}\toprule
+> Model & 3D U-Net & Channels in/out & 4 / 1\\
+> Feature widths & 16, 32, 64, 128 & Parameters & 1,401,857\\
+> Patch $(D,H,W)$ & $(96,96,96)$ & Batch size & 1\\
+> Loss & BCEWithLogits + soft Dice & Optimizer & Adam\\
+> Learning rate & $10^{-3}$ & Seed & 100\\
+> Budget per model & 10 epochs; 3,380 updates & Patches per case/epoch & 1\\
+> Checkpoint & Maximum validation Dice & Validation & Every epoch\\\bottomrule
+> \end{tabularx}
+> \end{center}
+> Convolution blocks use instance normalisation and LeakyReLU; pooling and transposed-convolution upsampling connect through skip concatenation. Both runs reset seed 100 before initialization. Split: 338 train / 73 validation / 73 test cases.
+>
+> The printed full-volume batch is image $[1,4,155,240,240]$, mask $[1,155,240,240]$, both float32, with mask values $\{0,1\}$. The dataset does not return a mask channel dimension; the training/validation loops add it. Training input/target shapes are $[1,4,96,96,96]$ and $[1,1,96,96,96]$.
+>
+> Uniform sampling draws valid crop corners uniformly. Tumour-aware sampling uses a random tumour-voxel centre with probability 0.5 (clipped to valid bounds), otherwise a uniform crop.
+> \begin{center}
+> \begin{tabular}{lrr}\toprule
+> Sampler & Patches containing tumour & Mean tumour-voxel fraction\\\midrule
+> Uniform & 2,679/3,380 (79.260\%) & 3.968\%\\
+> Tumour-aware & 3,028/3,380 (89.586\%) & 7.068\%\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \fig{images/training-curves.png}{46mm}{Learning curves. Plot indices 0--9 correspond to epochs 1--10. Selected checkpoints: uniform epoch 8; tumour-aware epoch 10. Validation is a padded, direct full-volume forward pass.}
+> \prompt{Identify underfitting, instability or overfitting using validation evidence only.}{}
+>
+> \newpage
+> % MAIN PAGE 3
+> \section*{E. Controlled sampling comparison}
+> The architecture, split, loss, optimizer, learning rate, seed and update budget are shared. Both experiments use the same augmentation pipeline; extra random draws in tumour-aware sampling mean the realised augmentation/crop sequences are not identical.
+> \begin{center}
+> \captionof{table}{Validation on 73 cases. Direct results use each model's best checkpoint. Sliding-window Dice uses 50\% nominal overlap. All metrics are case means; FP volume is in mL.}
+> \begin{tabular}{lrrrr}\toprule
+> Sampler & Direct Dice & Sensitivity & FP (mL) & Sliding Dice\\\midrule
+> Uniform & 0.676663 & 0.836038 & 56.011 & 0.707031\\
+> Tumour-aware & 0.653695 & 0.771313 & 52.278 & 0.680858\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \prompt{Compare uniform and tumour-aware sampling under the same architecture, split, loss and training budget.}{}
+> \prompt{Explain the mechanism behind any difference.}{}
+> The subsequent test code loads \texttt{model\_uniform\_best.pth}.
+> \prompt{Select one final configuration using validation evidence only.}{}
+> \prompt{State one disadvantage of excessive tumour oversampling.}{}
+>
+> \section*{F. Full-volume inference and evaluation}
+> Inference uses $96^3$ patches, stride 48 and nominal 50\% overlap. Sigmoid probabilities are summed and divided by the coverage count (uniform blending), then thresholded at $p>0.5$. Final windows are anchored to the volume end: starts are $[0,48,59]$ along $D=155$ and $[0,48,96,144]$ along $H,W=240$, giving 48 windows. Terminal overlaps can exceed 50\%.
+>
+> The test evaluation contains 73 cases. HD95 is the 95th percentile of concatenated bidirectional surface distances, using voxel spacing reordered to $(D,H,W)$. Empty masks produce undefined HD95 (NaN); all 73 supplied raw HD95 values are valid. SD is the pandas sample SD ($n-1$ denominator).
+> \begin{center}
+> \captionof{table}{Raw sliding-window test results, before postprocessing. Percentage volume error is \emph{signed}.}
+> \begin{tabular}{lrrr}\toprule
+> Metric & Mean & SD & Median\\\midrule
+> Dice & 0.714101 & 0.155612 & 0.763159\\
+> IoU & 0.575582 & 0.171547 & 0.617023\\
+> Sensitivity & 0.666529 & 0.202054 & 0.692361\\
+> HD95 (mm) & 32.527170 & 28.567078 & 18.493242\\
+> Absolute volume error (mL) & 42.950740 & 42.228475 & 29.522000\\
+> Signed volume error (\%) & $-8.149439$ & 101.488481 & $-25.321588$\\\bottomrule
+> \end{tabular}
+> \end{center}
+> Empty predictions: 0. Mean absolute percentage volume error: 46.333923\%.
+> \[
+> V=\frac{N s_xs_ys_z}{1000}\ \mathrm{mL},\quad
+> E_V=|V_p-V_r|,\quad e_{\%}=100\frac{V_p-V_r}{V_r}.
+> \]
+>
+> The tested postprocessing rule removes 6-connected components smaller than 1\,mL, retaining all components at least 1\,mL.
+> \begin{center}
+> \captionof{table}{Test results before/after the 1\,mL component rule. All values are means except median HD95 and empty counts.}
+> \begin{tabular}{lrrrrrr}\toprule
+> Rule & Dice & Sens. & HD95 & Median HD95 & $E_V$ (mL) & Empty\\\midrule
+> None & .714101 & .666529 & 32.527 & 18.493 & 42.951 & 0\\
+> Min. 1\,mL & .719293 & .665352 & 26.807 & 16.432 & 43.262 & 0\\\bottomrule
+> \end{tabular}
+> \end{center}
+> % Do not assert the rule was selected before testing without evidence.
+> \missing{case-wise Dice/IoU/sensitivity/HD95, plus complete postprocessing summaries and case-wise results}.
+>
+> \newpage
+> % MAIN PAGE 4
+> \section*{G. Three-plane error analysis and limitations}
+> Cases are ranked by test Dice \emph{after} the 1\,mL rule: maximum, middle sorted case (index 36 of 73), and minimum. Views use the rounded reference-tumour centroid on normalised FLAIR. Each supplied panel shows reference and prediction jointly: reference $=$ TP $\cup$ FN; prediction $=$ TP $\cup$ FP. Colours: TP green, FP red, FN blue.
+> \begin{center}
+> \asset{images/errors-best.png}{43mm}\\[2pt]
+> \asset{images/errors-median.png}{43mm}\\[2pt]
+> \asset{images/errors-worst.png}{43mm}
+> \captionof{figure}{Three-plane overlays: best BRATS\_112, median BRATS\_241 and worst BRATS\_466. Columns are axial, coronal and sagittal. Counts printed above each row are whole-volume counts.}
+> \end{center}
+> % Separate reference/prediction 3x3 originals are also in images/overlay-*.png.
+> % The combined TP/FP/FN overlays preserve both masks without duplicating panels.
+> \begin{center}
+> \captionof{table}{Metrics for the displayed postprocessed cases.}
+> \begin{tabular}{llrrrr}\toprule
+> Rank & Case & Dice & HD95 (mm) & $E_V$ (mL) & $e_{\%}$\\\midrule
+> Best & BRATS\_112 & .920291 & 3.32 & 23.36 & $-13.81$\\
+> Median & BRATS\_241 & .768129 & 38.55 & 1.57 & $-1.17$\\
+> Worst & BRATS\_466 & .208725 & 118.83 & 126.90 & 757.68\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \prompt{Relate an observed error to boundary quality, small structures or patch context.}{}
+> \prompt{Explain why one metric cannot summarize every failure.}{}
+> \textbf{Limitations.}
+> \begin{enumerate}
+> \item Small training budget (10 epochs per model): {}
+> \item Lack of external-site validation: {}
+> \item Additional limitation grounded in this experiment: {}
+> \end{enumerate}
+>
+> \newpage
+> % MAIN PAGE 5: reserve room for a full 150--250-word interpretation.
+> \section*{Bonus 1. Missing-modality stress test}
+> The experiment uses the \textbf{first five test cases}, with the uniform best checkpoint and no retraining. Each normalised channel is zeroed in turn; inference uses $96^3$ windows, 50\% nominal overlap, threshold 0.5 and no component filtering. The four-channel baseline is taken from cached raw results restricted to those same case IDs.
+> \begin{center}
+> \captionof{table}{Five-case missing-modality experiment. Dice, absolute mL error and absolute percentage error are means; HD95 is the median. Dice drop is relative to the five-case baseline.}
+> \begin{tabular}{lrrrrr}\toprule
+> Zeroed & Dice & HD95 (mm) & $E_V$ (mL) & Mean $|e_{\%}|$ & Dice drop\\\midrule
+> None & .828 & 74.603 & 9.703 & 14.765 & .000\\
+> FLAIR & .262 & 63.764 & 31.584 & 37.131 & .567\\
+> T1 & .640 & 84.500 & 34.062 & 71.004 & .188\\
+> T1ce & .774 & 68.620 & 14.644 & 29.290 & .054\\
+> T2 & .227 & 23.589 & 51.045 & 84.126 & .602\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \fig{images/missing-modality.png}{41mm}{Five-case missing-modality results; the baseline uses these same five cases.}
+> Implementation: notebook, Bonus 1 (missing-modality stress test).
+> \prompt{Interpretation (150--250 words): compare Dice, HD95 and volume error with the four-channel result; identify the most influential channel; explain the limitations of zeroing and how training could accommodate missing modalities.}{}
+> % Identify the most influential channel using your results, explain why
+> % zeroing is an imperfect missing-acquisition simulation, and discuss
+> % how training could be redesigned. State the five-case scope.
+> \vspace{42mm} % Reserved writing space: remove as interpretation grows.
+>
+> \newpage
+> % MAIN PAGE 6: seam test + references.
+> \section*{Bonus 2. Sliding-window seam test}
+> The same uniform best checkpoint is evaluated on all 73 test cases without component filtering. The three nominal overlaps use strides 96, 72 and 48. End-anchored windows still overlap in the nominal 0\% condition. Counts are 18, 18 and 48 windows per case, respectively.
+> \begin{center}
+> \captionof{table}{Seam experiment: case means except median HD95. Runtime covers the sliding-window call and return to CPU, excluding data loading and metric calculation.}
+> \begin{tabular}{lrrrrr}\toprule
+> Overlap & Seconds/case & Dice & Sens. & Median HD95 (mm) & $E_V$ (mL)\\\midrule
+> 0\% & 3.658 & .637 & .672 & 47.896 & 47.796\\
+> 25\% & 3.729 & .690 & .657 & 38.259 & 43.784\\
+> 50\% & 10.147 & .714 & .667 & 18.493 & 42.942\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \fig{images/seam-difference.png}{40mm}{First test case: absolute probability differences for 0\% versus 50\% and 25\% versus 50\% overlap. Left: average over $D,W$ versus $H$ index. Right: axial slice at the reference centroid. Dashed lines show nominal 0\% window borders; heatmaps use their own colour scales.}
+> Implementation: notebook, Bonus 2 (sliding-window seam test).
+> \prompt{Interpretation (150--250 words): compare runtime and metrics, explain when overlap helps, and why choosing overlap through repeated inspection of test labels would bias the result.}{}
+> % Explain when overlap helps using your results, and why selecting overlap
+> % after repeatedly inspecting test labels would bias evaluation.
+> \vspace{25mm} % Reserved writing space: remove as interpretation grows.
+> % Preserve the small difference between this experiment and Section F:
+> % F uses cached float16 probabilities; the seam test evaluates fresh outputs.
+> \begin{thebibliography}{99}
+> \bibitem{dataset} {}\ [Dataset reference.]
+> \bibitem{architecture} {}\ [Architecture reference.]
+> \bibitem{methods} {}\ [Additional methods/evaluation reference.]
+> \end{thebibliography}
+>
+> \end{document}
+>
+> User context
+>
+> Images:
+> - `/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-a4e9a0a0-2b98-4c70-8919-fb80679fee7c.png`
+
+<details><summary>2 previous messages</summary>
+
+> Yes—section B explicitly asks for case counts and the reference tumour-volume distribution in each split. I’ll add this figure with the counts in a compact section B, preserving your writing.
+>
+> <details><summary>Explored a file, ran 2 commands</summary>
+>
+> <details><summary>Explored a file</summary>
+>
+> - Read `./outputs/main.tex`
+>
+> </details>
+>
+> - Ran `cat > work/add_split_figure.py <<'PY'
+> from pathlib import Path
+> import shutil
+> p=Path('outputs/main.tex'); s=p.read_text()
+> # Preserve the newer wording supplied in the user's message.
+> s=s.replace(r'\prompt{Why file-index order alone is insufficient for spatial interpretation.}{}',r'\prompt{Why file-index order alone is insufficient for spatial interpretation.}{Spatial interpretation needs the affine matrix to map. Essentially $[x, y, z]^T = A\,[i, j, k]^T$, where $xyz$ is the spatial location and $ijk$ are the array coordinates. An array difference of 1 could correspond to any difference between real voxels.}')
+> s=s.replace('The code checks image/label shape, spatial spacing and affine agreement. The training pipeline uses the native grid. Separate interpolation helpers use linear MRI interpolation and nearest-neighbour label interpolation; the synthetic label demonstration changes the observed set from $\\{0,1,2,3\\}$ to $\\{0,2\\}$.',r'I checked that the image and label shapes, voxel spacing and affine all match for every case, so no resampling was needed and training uses the native grid. I still wrote resampling functions in case they are needed later: linear interpolation for the MRI and nearest-neighbour for the labels. On a small made-up label array, the set of values went from $\{0,1,2,3\}$ to $\{0,2\}$ after resampling, so the labels stay valid (still a subset of the original values) and no new values appear.')
+> s=s.replace(r'Each non-zero intensity is transformed as $(x-\mu_c)/\sigma_c$; zero background remains zero. \missing{measured channel means and SDs after normalisation}.',r'Each non-zero intensity is transformed as $(x-\mu_c)/\sigma_c$: a standard preprocessing step for neural networks.')
+> s=s.replace(r'Training uses an axis-0 flip with probability 0.25 and rotation in array axes $(0,1)$ by an angle sampled from $[-10^\circ,10^\circ]$. MRI uses order 1 and labels order 0 interpolation; rotation retains array shape. Validation/test datasets have no augmentation. Training extracts $96^3$ crops without padding; direct full-volume validation pads to multiples of eight and crops logits back to the original size.',r'For training, I randomly flip the volume left to right (sagittal flip) with probability 0.25, and rotate it by a random angle between $-10^\circ$ and $10^\circ$ in the axial plane. The MRI is rotated with linear interpolation and the label with nearest-neighbour, so the label stays binary. Rotation keeps the array shape the same. Validation and test data are not augmented. Training uses $96^3$ patches, which are already divisible by 8, so they need no padding. Full-volume validation pads each dimension up to a multiple of 8 (depth 155 becomes 160), runs the model, then crops the output back to the original size.')
+> block=r'''\section*{B. Case-level split}
+> \noindent\begin{minipage}[t]{0.38\linewidth}
+> \vspace{0pt}
+> The supplied \texttt{assignment2\_split.csv} defines the patient-level split:
+> \begin{center}
+> \begin{tabular}{lr}\toprule
+> Split & Cases\\\midrule
+> Train & 338\\
+> Validation & 73\\
+> Test & 73\\\bottomrule
+> \end{tabular}
+> \end{center}
+> \end{minipage}\hfill
+> \begin{minipage}[t]{0.58\linewidth}
+> \vspace{0pt}\centering
+> \asset{images/split-volumes.png}{50mm}
+> \captionof{figure}{Reference tumour-volume distributions across the three splits. Volumes are in mm$^3$.}
+> \end{minipage}
+> \par\medskip
+>
+> '''
+> assert r'\section*{B.' not in s
+> s=s.replace(r'\section*{C. Safe preprocessing}',block+r'\section*{C. Safe preprocessing}',1)
+> p.write_text(s)
+> shutil.copy2('/var/folders/t3/d5zm7pjd45z1cfpgg59_pnww0000gq/T/codex-clipboard-a4e9a0a0-2b98-4c70-8919-fb80679fee7c.png','outputs/images/split-volumes.png')
+> PY
+> python3 work/add_split_figure.py`
+>
+> Tool call
+>
+> Tool: compile_latex_document
+> Status: completed
+>
+> - Ran ``python3 - <<'PY'
+> from pathlib import Path
+> import zipfile
+> r=Path('outputs'); p=r/'figure-code-map.md'; s=p.read_text()
+> for old,new in [('7: seam','8: seam'),('6: missing','7: missing'),('5,','6,'),('4: training','5: training'),('3: augmentation','4: augmentation')]:
+>     s=s.replace(old,new)
+> row='| 3: split-volume distributions | split-volumes.png | Section B, lines 252–256 | `plt.boxplot([train_volumes, val_volumes, test_volumes])` |\n'
+> s=s.replace('| 4: augmentation',row+'| 4: augmentation')
+> s=s.replace('The split-volume plot (`plt.boxplot`, line 252) was removed from the report with the appendix material below the affine matrix.','The split-volume plot (`plt.boxplot`, line 252) appears in section B.')
+> p.write_text(s)
+> with zipfile.ZipFile(r/'overleaf-report.zip','w',zipfile.ZIP_DEFLATED) as z:
+>     for p in [r/'main.tex',r/'README.txt',r/'figure-code-map.md',*sorted((r/'images').glob('*.png'))]:
+>         z.write(p,p.relative_to(r))
+> PY``
+>
+> </details>
+</details>
+
+Yes—section B requires the reference tumour-volume distribution for each split.
+
+I added it as `images/split-volumes.png`, alongside the counts: **338 train, 73 validation, 73 test**, preserving your pasted wording. Compilation passed.
+
+[Updated Overleaf bundle](./outputs/overleaf-report.zip)
+
+> Convolution blocks use instance normalisation and LeakyReLU; pooling and transposed-convolution upsampling connect through skip concatenation. Both runs reset seed 100 before initialization. Split: 338 train / 73 validation / 73 test cases.
+>
+> The printed full-volume batch is image $[1,4,155,240,240]$, mask $[1,155,240,240]$, both float32, with mask values $\{0,1\}$. The dataset does not return a mask channel dimension; the training/validation loops add it. Training input/target shapes are $[1,4,96,96,96]$ and $[1,1,96,96,96]$.
+>
+> Uniform sampling draws valid crop corners uniformly. Tumour-aware sampling uses a random tumour-voxel centre with probability 0.5 (clipped to valid bounds), otherwise a uniform crop.
+>
+> Can I just delete this? Talking about this adds no value? It is not said to be in the report
+
+Yes—you can delete most of it. The configuration table already covers the seed and model settings, and section B covers the split counts. The batch-shape paragraph can remain in your notebook, where you demonstrate batch verification.
+
+I would **keep the sampler description**, because it defines the two conditions you compare in section E. You can shorten it to:
+
+> Uniform sampling selects valid patch locations uniformly. Tumour-aware sampling centres patches on a randomly selected tumour voxel with probability 0.5; otherwise, it samples uniformly.
+
+The architecture details are optional supporting context. Removing them is reasonable given the page limit.

@@ -1,5 +1,7 @@
 I only used ai to create a LaTeX tenmplate for me to then include my own words. Chats were done using ChatGPT Astra at medium effort. 
 
+AI was also used to write the README.md for the project github.
+
 # Create LaTeX report template
 
 > Imagine you are a medical imaging researcher. I am a student who has done a full set of experiments for a UNET doing brain tumour image segmentation, and now I have to write a report. The only thing is, I do not know how to write in LaTeX. I would like you to design a template that is in latex that organizes the report (which can be a max of 6 pages + an appendix of 2 pages) into the way I will describe below. Please do not fill in actual analysis for me, use filler text to say (Write what you wanted to write here). Be conscious of spacing so things you find to be not important, delegate to the appendix (though be very careful before doing this). Also create a references section for me to add the references independently. Output copy-and-pastable blocks I can put on overleaf. You are allowed to verbatim copy and paste figures and tables I provide you right now (as this is my work you are merely translating it onto the latex). I will paste you the actual assignment structure and wherever it says to explicitly analyse and talk about something, have a place for me to present the image or write about it.
